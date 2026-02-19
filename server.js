@@ -149,25 +149,32 @@ async function lookupProperty(address, perplexityKey, rentcastKey) {
         }
     }
 
-    // 2. If any fields are still missing, try Perplexity to fill gaps
-    if (!merged.beds || !merged.baths || !merged.sqft) {
+    // 2. If any fields are still missing, try Perplexity (with retries for reliability)
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        if (merged.beds && merged.baths && merged.sqft) break;
+
         try {
+            console.log(`  Perplexity attempt ${attempt}/${MAX_RETRIES}...`);
             const pp = await lookupViaPerplexity(address, perplexityKey);
             if (pp) {
-                console.log('  Perplexity found:', JSON.stringify(pp));
-                // Only fill in what's still missing
+                console.log(`  Perplexity found (attempt ${attempt}):`, JSON.stringify(pp));
                 if (!merged.beds && pp.beds) merged.beds = pp.beds;
                 if (!merged.baths && pp.baths) merged.baths = pp.baths;
                 if (!merged.sqft && pp.sqft) merged.sqft = pp.sqft;
-                // Update source to show both if we used both
                 if (merged.source && merged.source !== pp.source) {
                     merged.source = merged.source + ' + ' + (pp.source || 'web search');
                 } else if (!merged.source) {
                     merged.source = pp.source;
                 }
+                if (merged.beds && merged.baths) break;
             }
         } catch (err) {
-            console.warn('  Perplexity error:', err.message);
+            console.warn(`  Perplexity error (attempt ${attempt}):`, err.message);
+        }
+
+        if (attempt < MAX_RETRIES && (!merged.beds || !merged.baths)) {
+            await new Promise(r => setTimeout(r, 1000));
         }
     }
 
