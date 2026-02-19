@@ -121,8 +121,8 @@ function goToStep(n) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ==================== PROPERTY LOOKUP (OPTION C) ====================
-function simulatePropertyLookup() {
+// ==================== PROPERTY LOOKUP ====================
+async function performPropertyLookup() {
     const loader = $('lookupLoader');
     const form = $('propertyForm');
 
@@ -130,12 +130,73 @@ function simulatePropertyLookup() {
     form.classList.add('hidden');
     $('selectedAddressDisplay').textContent = state.address;
 
-    // Simulate API search (replace with real API call)
-    setTimeout(() => {
-        loader.style.display = 'none';
-        form.classList.remove('hidden');
-        $('addressConfirm').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--accent);flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${state.address}`;
-    }, 2200);
+    let lookupResult = null;
+
+    try {
+        const res = await fetch('/api/lookup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: state.address })
+        });
+        if (res.ok) {
+            lookupResult = await res.json();
+        }
+    } catch (err) {
+        console.warn('Property lookup failed:', err);
+    }
+
+    // Minimum 1.5s so the loader doesn't flash
+    await new Promise(r => setTimeout(r, 1500));
+
+    loader.style.display = 'none';
+    form.classList.remove('hidden');
+
+    // Build the address confirmation with verification status
+    const verified = lookupResult && lookupResult.confidence && lookupResult.confidence !== 'none';
+    const statusHTML = verified
+        ? `<span class="lookup-status lookup-verified">
+               <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5zm-1 15l-4-4 1.41-1.41L11 14.17l6.59-6.59L19 9l-8 8z"/></svg>
+               Property verified via ${lookupResult.source || 'public records'}
+           </span>`
+        : `<span class="lookup-status lookup-unverified">Enter your property details below</span>`;
+
+    $('addressConfirm').innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--accent);flex-shrink:0">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+        </svg>
+        ${state.address}
+        ${statusHTML}`;
+
+    // Pre-fill selectors if we got data
+    if (lookupResult) {
+        console.log('Lookup result:', JSON.stringify(lookupResult));
+        // Use setTimeout to ensure DOM has fully rendered after step transition
+        setTimeout(() => {
+            if (lookupResult.beds) prefillSelector('bedSelector', lookupResult.beds);
+            if (lookupResult.baths) prefillSelector('bathSelector', lookupResult.baths);
+            if (lookupResult.sqft) {
+                $('sqftInput').value = lookupResult.sqft;
+                state.sqft = lookupResult.sqft;
+            }
+            checkStep2Ready();
+        }, 100);
+    }
+}
+
+function prefillSelector(selectorId, value) {
+    // Cap at 4 (our max button value)
+    const cappedValue = Math.min(value, 4);
+    const buttons = document.querySelectorAll(`#${selectorId} .selector-btn`);
+    console.log(`prefillSelector: #${selectorId} found ${buttons.length} buttons, looking for value ${cappedValue}`);
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.value) === cappedValue) {
+            btn.classList.add('active');
+            console.log(`prefillSelector: activated button with value ${cappedValue} in ${selectorId}`);
+            if (selectorId === 'bedSelector') state.beds = cappedValue;
+            if (selectorId === 'bathSelector') state.baths = cappedValue;
+        }
+    });
 }
 
 // ==================== PRICING ENGINE ====================
@@ -286,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('getQuoteBtn').addEventListener('click', () => {
         if (!state.address) state.address = $('addressInput').value.trim();
         goToStep(2);
-        simulatePropertyLookup();
+        performPropertyLookup();
     });
 
     // Step 2 → Step 1
