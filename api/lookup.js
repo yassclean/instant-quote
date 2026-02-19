@@ -18,12 +18,19 @@ module.exports = async function handler(req, res) {
     const rentcastKey = process.env.RENTCAST_API_KEY;
     const perplexityKey = process.env.PERPLEXITY_API_KEY;
 
+    // Collect debug logs
+    const debugLogs = [];
+    debugLogs.push(`rentcastKey present: ${!!rentcastKey}, length: ${(rentcastKey || '').length}`);
+    debugLogs.push(`perplexityKey present: ${!!perplexityKey}, length: ${(perplexityKey || '').length}`);
+    debugLogs.push(`perplexityKey starts with: ${(perplexityKey || '').substring(0, 8)}...`);
+
     try {
-        const result = await lookupProperty(address, perplexityKey, rentcastKey);
+        const result = await lookupProperty(address, perplexityKey, rentcastKey, debugLogs);
+        result._debug = debugLogs;
         res.json(result);
     } catch (err) {
         console.error('Lookup error:', err);
-        res.status(500).json({ error: 'Lookup failed' });
+        res.status(500).json({ error: 'Lookup failed', _debug: debugLogs, _error: err.message });
     }
 }
 
@@ -55,8 +62,11 @@ async function lookupViaRentcast(address, apiKey) {
 }
 
 // ==================== PERPLEXITY API (fallback) ====================
-async function lookupViaPerplexity(address, apiKey) {
-    if (!apiKey || apiKey === 'your-key-here') return null;
+async function lookupViaPerplexity(address, apiKey, debugLogs = []) {
+    if (!apiKey || apiKey === 'your-key-here') {
+        debugLogs.push('Perplexity: no API key');
+        return null;
+    }
 
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
         method: 'POST',
@@ -80,11 +90,12 @@ async function lookupViaPerplexity(address, apiKey) {
         })
     });
 
+    debugLogs.push(`Perplexity HTTP status: ${response.status}`);
     if (!response.ok) throw new Error(`Perplexity ${response.status}`);
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
-    console.log('  Perplexity raw:', content);
+    debugLogs.push('Perplexity raw content: ' + content);
 
     let beds = null, baths = null, sqft = null, source = 'zillow.com';
     const jsonMatch = content.match(/\{[\s\S]*?\}/);
@@ -115,7 +126,7 @@ async function lookupViaPerplexity(address, apiKey) {
 }
 
 // ==================== ORCHESTRATION (merge strategy) ====================
-async function lookupProperty(address, perplexityKey, rentcastKey) {
+async function lookupProperty(address, perplexityKey, rentcastKey, debugLogs = []) {
     let merged = { beds: null, baths: null, sqft: null, source: null, confidence: 'none' };
 
     if (rentcastKey && rentcastKey !== 'your-key-here') {
@@ -123,12 +134,12 @@ async function lookupProperty(address, perplexityKey, rentcastKey) {
             const rc = await lookupViaRentcast(address, rentcastKey);
             if (rc) {
                 merged = { ...merged, ...pickNonNull(rc), source: 'rentcast.io' };
-                console.log('  Rentcast found:', JSON.stringify(rc));
+                debugLogs.push('Rentcast found: ' + JSON.stringify(rc));
             } else {
-                console.log('  Rentcast: no results');
+                debugLogs.push('Rentcast: no results');
             }
         } catch (err) {
-            console.warn('  Rentcast error:', err.message);
+            debugLogs.push('Rentcast error: ' + err.message);
         }
     }
 
@@ -138,10 +149,10 @@ async function lookupProperty(address, perplexityKey, rentcastKey) {
         if (merged.beds && merged.baths && merged.sqft) break; // All found, stop
 
         try {
-            console.log(`  Perplexity attempt ${attempt}/${MAX_RETRIES}...`);
-            const pp = await lookupViaPerplexity(address, perplexityKey);
+            debugLogs.push(`Perplexity attempt ${attempt}/${MAX_RETRIES}...`);
+            const pp = await lookupViaPerplexity(address, perplexityKey, debugLogs);
             if (pp) {
-                console.log(`  Perplexity found (attempt ${attempt}):`, JSON.stringify(pp));
+                debugLogs.push(`Perplexity found (attempt ${attempt}): ${JSON.stringify(pp)}`);
                 if (!merged.beds && pp.beds) merged.beds = pp.beds;
                 if (!merged.baths && pp.baths) merged.baths = pp.baths;
                 if (!merged.sqft && pp.sqft) merged.sqft = pp.sqft;
@@ -152,9 +163,11 @@ async function lookupProperty(address, perplexityKey, rentcastKey) {
                 }
                 // If we got beds and baths, no need to retry
                 if (merged.beds && merged.baths) break;
+            } else {
+                debugLogs.push(`Perplexity attempt ${attempt}: returned null`);
             }
         } catch (err) {
-            console.warn(`  Perplexity error (attempt ${attempt}):`, err.message);
+            debugLogs.push(`Perplexity error (attempt ${attempt}): ${err.message}`);
         }
 
         // Wait 1 second before retrying
