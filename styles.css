@@ -789,6 +789,23 @@ body {
     margin-top: 4px;
 }
 
+/* Tier adjustment notes */
+.tier-note {
+    font-size: 0.7rem;
+    color: var(--accent);
+    margin-top: 6px;
+    opacity: 0.85;
+}
+
+.surcharge-note {
+    color: #ff9f43;
+}
+
+.move-price-wrapper {
+    text-align: right;
+    flex-shrink: 0;
+}
+
 /* Maintenance Frequency Cards */
 .pricing-grid {
     display: grid;

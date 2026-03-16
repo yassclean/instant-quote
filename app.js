@@ -22,6 +22,22 @@ const PRICING = {
     }
 };
 
+// Square footage tier matrix — shared across all service categories.
+// When actual sqft falls outside the threshold range for a bed/bath combo,
+// pricing shifts to the adjacent tier combo.
+const TIER_MATRIX = {
+    '1-1': { baselineSqft: 700,  downMax: 560,  upMin: 840,  downTo: null,  upTo: '2-1' },
+    '2-1': { baselineSqft: 900,  downMax: 720,  upMin: 1080, downTo: '1-1', upTo: '2-2' },
+    '2-2': { baselineSqft: 1050, downMax: 840,  upMin: 1260, downTo: '2-1', upTo: '3-1' },
+    '3-1': { baselineSqft: 1200, downMax: 960,  upMin: 1440, downTo: '2-1', upTo: '3-2' },
+    '3-2': { baselineSqft: 1450, downMax: 1160, upMin: 1740, downTo: '3-1', upTo: '3-3' },
+    '3-3': { baselineSqft: 1750, downMax: 1400, upMin: 2100, downTo: '3-2', upTo: '4-2' },
+    '4-1': { baselineSqft: 1650, downMax: 1320, upMin: 1980, downTo: '3-2', upTo: '4-2' },
+    '4-2': { baselineSqft: 1950, downMax: 1560, upMin: 2340, downTo: '4-1', upTo: '4-3' },
+    '4-3': { baselineSqft: 2300, downMax: 1840, upMin: 2760, downTo: '4-2', upTo: '4-4' },
+    '4-4': { baselineSqft: 2800, downMax: 2240, upMin: 3360, downTo: '4-3', upTo: null  }  // null = custom surcharge
+};
+
 const CARPET = {
     'Basic Deep Extraction': { '1-2 Rooms': 150, '3-4 Rooms': 299, '5+ Rooms': 449 },
     'Basic + Stain & Odor': { '1-2 Rooms': 196, '3-4 Rooms': 380, '5+ Rooms': 564 },
@@ -200,15 +216,42 @@ function prefillSelector(selectorId, value) {
 }
 
 // ==================== PRICING ENGINE ====================
-function getPrice(category, beds, baths) {
+
+// Resolve a bed/bath combo key, capping baths at beds for missing combos
+function resolveComboKey(beds, baths) {
     const key = `${beds}-${baths}`;
-    if (PRICING[category] && PRICING[category][key]) {
-        return PRICING[category][key];
-    }
-    // Fallback: cap baths at beds
+    if (TIER_MATRIX[key]) return key;
     const cappedBaths = Math.min(baths, beds);
-    const fallbackKey = `${beds}-${cappedBaths}`;
-    return PRICING[category] ? PRICING[category][fallbackKey] || null : null;
+    return `${beds}-${cappedBaths}`;
+}
+
+// Apply square-footage tier adjustment.
+// Returns { key, shifted, customSurcharge } where:
+//   key = the (possibly shifted) combo key to price from
+//   shifted = true if sqft caused a tier change
+//   customSurcharge = true if the property exceeds the largest tier
+function adjustTierForSqft(comboKey, sqft) {
+    const tier = TIER_MATRIX[comboKey];
+    if (!tier || !sqft) return { key: comboKey, shifted: false, customSurcharge: false };
+
+    if (sqft < tier.downMax && tier.downTo) {
+        return { key: tier.downTo, shifted: true, customSurcharge: false };
+    }
+    if (sqft > tier.upMin) {
+        if (!tier.upTo) {
+            return { key: comboKey, shifted: false, customSurcharge: true };
+        }
+        return { key: tier.upTo, shifted: true, customSurcharge: false };
+    }
+    return { key: comboKey, shifted: false, customSurcharge: false };
+}
+
+function getPrice(category, beds, baths, sqft) {
+    const comboKey = resolveComboKey(beds, baths);
+    const { key, shifted, customSurcharge } = adjustTierForSqft(comboKey, sqft);
+
+    const basePrice = PRICING[category] ? PRICING[category][key] || null : null;
+    return { price: basePrice, comboKey: key, shifted, customSurcharge };
 }
 
 function applyDiscount(price, discount) {
@@ -240,8 +283,10 @@ function renderPricing() {
     summary.innerHTML = summaryHTML;
 
     // 1. Deep Clean Hero Card
-    const deepPrice = getPrice('deepClean', beds, baths);
-    const dp = formatPrice(deepPrice);
+    const deepResult = getPrice('deepClean', beds, baths, sqft);
+    const dp = formatPrice(deepResult.price);
+    const deepTierNote = deepResult.shifted ? `<div class="tier-note">Adjusted for ${Number(sqft).toLocaleString()} sqft</div>` : '';
+    const deepSurcharge = deepResult.customSurcharge ? `<div class="tier-note surcharge-note">Custom pricing — please call for a quote</div>` : '';
     $('deepCleanCard').innerHTML = `
         <div class="hero-card-info">
             <div class="hero-card-badge">✨ Recommended First Visit</div>
@@ -249,12 +294,15 @@ function renderPricing() {
             <div class="hero-card-desc">A thorough, top-to-bottom cleaning of your entire home. Perfect for first-time customers or seasonal refreshes.</div>
         </div>
         <div class="hero-card-price">
-            <div class="price-large price-animate">$${dp.dollars}<span class="price-cents">.${dp.cents}</span></div>
+            <div class="price-large price-animate">${deepResult.customSurcharge ? 'Custom' : `$${dp.dollars}<span class="price-cents">.${dp.cents}</span>`}</div>
             <div class="price-label">one-time service</div>
+            ${deepTierNote}${deepSurcharge}
         </div>`;
 
     // 2. Maintenance Frequency Cards
-    const baseMaintenancePrice = getPrice('maintenance', beds, baths);
+    const maintResult = getPrice('maintenance', beds, baths, sqft);
+    const baseMaintenancePrice = maintResult.price;
+    const maintTierNote = maintResult.shifted ? `<div class="tier-note">Adjusted for ${Number(sqft).toLocaleString()} sqft</div>` : '';
     let freqHTML = '';
     FREQUENCY_TIERS.forEach(tier => {
         const price = tier.discount > 0 ? applyDiscount(baseMaintenancePrice, tier.discount) : baseMaintenancePrice;
@@ -275,9 +323,10 @@ function renderPricing() {
                 ${badgeHTML}
                 <div class="freq-title">${tier.label}</div>
                 ${savingsHTML}
-                <div class="freq-price price-animate">$${p.dollars}<span class="cents">.${p.cents}</span></div>
+                <div class="freq-price price-animate">${maintResult.customSurcharge ? 'Custom' : `$${p.dollars}<span class="cents">.${p.cents}</span>`}</div>
                 <div class="freq-per">per visit</div>
                 ${originalHTML}
+                ${maintTierNote}
                 <ul class="freq-features">
                     <li>Same dedicated team</li>
                     <li>Flexible scheduling</li>
@@ -289,14 +338,19 @@ function renderPricing() {
     $('maintenanceCards').innerHTML = freqHTML;
 
     // 3. Move In/Out Card
-    const movePrice = getPrice('moveInOut', beds, baths);
-    const mp = formatPrice(movePrice);
+    const moveResult = getPrice('moveInOut', beds, baths, sqft);
+    const mp = formatPrice(moveResult.price);
+    const moveTierNote = moveResult.shifted ? `<div class="tier-note">Adjusted for ${Number(sqft).toLocaleString()} sqft</div>` : '';
+    const moveSurcharge = moveResult.customSurcharge ? `<div class="tier-note surcharge-note">Custom pricing — please call for a quote</div>` : '';
     $('moveInOutCard').innerHTML = `
         <div class="single-info">
             <div class="single-title">Move In / Out Cleaning</div>
             <div class="single-desc">Comprehensive cleaning for move days. Every surface, appliance, and corner — ready for the next chapter.</div>
         </div>
-        <div class="single-price price-animate">$${mp.dollars}<span class="cents">.${mp.cents}</span></div>`;
+        <div class="move-price-wrapper">
+            <div class="single-price price-animate">${moveResult.customSurcharge ? 'Custom' : `$${mp.dollars}<span class="cents">.${mp.cents}</span>`}</div>
+            ${moveTierNote}${moveSurcharge}
+        </div>`;
 
     // 4. Add-Ons
     let addonsHTML = '';
