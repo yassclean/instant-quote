@@ -77,12 +77,13 @@ const state = {
     address: '',
     beds: null,
     baths: null,
-    sqft: null
+    sqft: null,
+    selectedServices: []  // { id, name, price }
 };
 
 // ==================== DOM REFS ====================
 const $ = id => document.getElementById(id);
-const stepSections = [null, $('step1'), $('step2'), $('step3')];
+const stepSections = [null, $('step1'), $('step2'), $('step3'), $('step4')];
 const stepDots = document.querySelectorAll('.step-dot');
 const stepLines = document.querySelectorAll('.step-line');
 
@@ -287,7 +288,13 @@ function renderPricing() {
     const dp = formatPrice(deepResult.price);
     const deepTierNote = deepResult.shifted ? `<div class="tier-note">Adjusted for ${Number(sqft).toLocaleString()} sqft</div>` : '';
     const deepSurcharge = deepResult.customSurcharge ? `<div class="tier-note surcharge-note">Custom pricing — please call for a quote</div>` : '';
-    $('deepCleanCard').innerHTML = `
+    const deepCleanEl = $('deepCleanCard');
+    deepCleanEl.classList.add('selectable');
+    deepCleanEl.dataset.serviceId = 'deepClean';
+    deepCleanEl.dataset.serviceName = 'Residential Deep Clean';
+    deepCleanEl.dataset.servicePrice = deepResult.customSurcharge ? 'Custom' : deepResult.price;
+    deepCleanEl.innerHTML = `
+        <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
         <div class="hero-card-info">
             <div class="hero-card-badge">✨ Recommended First Visit</div>
             <div class="hero-card-title">Residential Deep Clean</div>
@@ -319,7 +326,8 @@ function renderPricing() {
             ? `<div class="freq-original">$${baseMaintenancePrice.toFixed(2)}</div>` : '';
 
         freqHTML += `
-            <div class="freq-card${featured}">
+            <div class="freq-card${featured} selectable" data-service-id="maintenance-${tier.key}" data-service-name="Maintenance — ${tier.label}" data-service-price="${maintResult.customSurcharge ? 'Custom' : price}">
+                <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
                 ${badgeHTML}
                 <div class="freq-title">${tier.label}</div>
                 ${savingsHTML}
@@ -342,7 +350,13 @@ function renderPricing() {
     const mp = formatPrice(moveResult.price);
     const moveTierNote = moveResult.shifted ? `<div class="tier-note">Adjusted for ${Number(sqft).toLocaleString()} sqft</div>` : '';
     const moveSurcharge = moveResult.customSurcharge ? `<div class="tier-note surcharge-note">Custom pricing — please call for a quote</div>` : '';
-    $('moveInOutCard').innerHTML = `
+    const moveEl = $('moveInOutCard');
+    moveEl.classList.add('selectable');
+    moveEl.dataset.serviceId = 'moveInOut';
+    moveEl.dataset.serviceName = 'Move In / Out Cleaning';
+    moveEl.dataset.servicePrice = moveResult.customSurcharge ? 'Custom' : moveResult.price;
+    moveEl.innerHTML = `
+        <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
         <div class="single-info">
             <div class="single-title">Move In / Out Cleaning</div>
             <div class="single-desc">Comprehensive cleaning for move days. Every surface, appliance, and corner — ready for the next chapter.</div>
@@ -356,9 +370,10 @@ function renderPricing() {
     let addonsHTML = '';
     EXTRAS.forEach(e => {
         addonsHTML += `
-            <div class="addon-item">
+            <div class="addon-item selectable" data-service-id="addon-${e.name.replace(/\s+/g, '-').toLowerCase()}" data-service-name="${e.name}" data-service-price="${e.price}">
                 <span class="addon-name">${e.name}</span>
                 <span class="addon-price">+$${e.price}</span>
+                <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
             </div>`;
     });
     $('addOnsGrid').innerHTML = addonsHTML;
@@ -374,8 +389,10 @@ function renderPricing() {
                     <span class="carpet-price">$${price}</span>
                 </div>`;
         });
+        const minCarpetPrice = Math.min(...Object.values(sizes));
         carpetHTML += `
-            <div class="carpet-card">
+            <div class="carpet-card selectable" data-service-id="carpet-${tier.replace(/\s+/g, '-').toLowerCase()}" data-service-name="Carpet — ${tier}" data-service-price="${minCarpetPrice}">
+                <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
                 <div class="carpet-tier">${tier.includes('Ultimate') ? '<span class="carpet-tier-accent">★ </span>' : ''}${tier}</div>
                 ${rowsHTML}
             </div>`;
@@ -392,6 +409,132 @@ function renderPricing() {
     </div>`;
 
     $('carpetCards').innerHTML = carpetHTML;
+
+    // Reset selections
+    state.selectedServices = [];
+    updateSelectionUI();
+
+    // Attach click handlers to all selectable cards
+    document.querySelectorAll('.selectable').forEach(card => {
+        card.addEventListener('click', () => toggleServiceSelection(card));
+    });
+}
+
+// ==================== SERVICE SELECTION ====================
+function toggleServiceSelection(card) {
+    const id = card.dataset.serviceId;
+    const name = card.dataset.serviceName;
+    const price = card.dataset.servicePrice;
+
+    // For maintenance cards, only allow one frequency selected at a time
+    if (id.startsWith('maintenance-')) {
+        document.querySelectorAll('.freq-card.selected').forEach(el => {
+            el.classList.remove('selected');
+            state.selectedServices = state.selectedServices.filter(s => !s.id.startsWith('maintenance-'));
+        });
+    }
+
+    const idx = state.selectedServices.findIndex(s => s.id === id);
+    if (idx >= 0) {
+        state.selectedServices.splice(idx, 1);
+        card.classList.remove('selected');
+    } else {
+        state.selectedServices.push({ id, name, price });
+        card.classList.add('selected');
+    }
+
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const btn = $('continueToBookBtn');
+    const hint = $('selectionHint');
+    const count = state.selectedServices.length;
+    btn.disabled = count === 0;
+    hint.textContent = count === 0
+        ? "Tap the services above to select what you'd like to book"
+        : `${count} service${count > 1 ? 's' : ''} selected`;
+}
+
+// ==================== BOOKING SUMMARY & SUBMISSION ====================
+function renderBookingSummary() {
+    let html = '<div class="booking-summary-title">Selected Services</div>';
+    let total = 0;
+    let hasCustom = false;
+
+    state.selectedServices.forEach(s => {
+        const isCustom = s.price === 'Custom';
+        if (isCustom) hasCustom = true;
+        else total += parseFloat(s.price);
+
+        html += `
+            <div class="booking-summary-item">
+                <span class="booking-summary-name">${s.name}</span>
+                <span class="booking-summary-price">${isCustom ? 'Custom' : '$' + parseFloat(s.price).toFixed(2)}</span>
+            </div>`;
+    });
+
+    html += `
+        <div class="booking-summary-total">
+            <span>Estimated Total</span>
+            <span class="booking-summary-price">${hasCustom ? 'From $' + total.toFixed(2) + '+' : '$' + total.toFixed(2)}</span>
+        </div>`;
+
+    $('bookingSummary').innerHTML = html;
+
+    // Set min date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0];
+    $('slot1Date').min = minDate;
+    $('slot2Date').min = minDate;
+}
+
+function checkBookingReady() {
+    const name = $('contactName').value.trim();
+    const phone = $('contactPhone').value.trim();
+    const slot1Date = $('slot1Date').value;
+    const slot1Time = $('slot1Time').value;
+    const slot2Date = $('slot2Date').value;
+    const slot2Time = $('slot2Time').value;
+
+    const ready = name && phone && slot1Date && slot1Time && slot2Date && slot2Time;
+    $('submitBookingBtn').disabled = !ready;
+}
+
+function submitBooking() {
+    const bookingData = {
+        address: state.address,
+        beds: state.beds,
+        baths: state.baths,
+        sqft: state.sqft,
+        services: state.selectedServices,
+        slot1: { date: $('slot1Date').value, time: $('slot1Time').value },
+        slot2: { date: $('slot2Date').value, time: $('slot2Time').value },
+        name: $('contactName').value.trim(),
+        phone: $('contactPhone').value.trim(),
+        email: $('contactEmail').value.trim()
+    };
+
+    // Log for now — future: send to API / email
+    console.log('Booking submitted:', JSON.stringify(bookingData, null, 2));
+
+    // Show confirmation
+    const formatDate = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+    $('confirmationDetails').innerHTML = `
+        <strong>${bookingData.name}</strong><br>
+        ${bookingData.phone}${bookingData.email ? '<br>' + bookingData.email : ''}<br><br>
+        <strong>Preferred times:</strong><br>
+        1. ${formatDate(bookingData.slot1.date)} at ${bookingData.slot1.time}<br>
+        2. ${formatDate(bookingData.slot2.date)} at ${bookingData.slot2.time}<br><br>
+        <strong>Services:</strong><br>
+        ${bookingData.services.map(s => s.name).join('<br>')}
+    `;
+
+    // Hide form, show confirmation
+    document.querySelectorAll('#step4 .form-group, #step4 .booking-summary, #step4 .section-sub, #step4 .section-title, #step4 .back-btn, #submitBookingBtn').forEach(el => el.style.display = 'none');
+    $('bookingConfirmation').style.display = 'block';
 }
 
 // ==================== EVENT LISTENERS ====================
@@ -409,6 +552,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Step 3 → Step 2
     $('backToStep2').addEventListener('click', () => goToStep(2));
+
+    // Step 3 → Step 4
+    $('continueToBookBtn').addEventListener('click', () => {
+        renderBookingSummary();
+        goToStep(4);
+    });
+
+    // Step 4 → Step 3
+    $('backToStep3').addEventListener('click', () => goToStep(3));
+
+    // Booking form validation
+    ['slot1Date', 'slot1Time', 'slot2Date', 'slot2Time', 'contactName', 'contactPhone'].forEach(id => {
+        $(id).addEventListener('input', checkBookingReady);
+        $(id).addEventListener('change', checkBookingReady);
+    });
+
+    // Submit booking
+    $('submitBookingBtn').addEventListener('click', submitBooking);
 
     // Bed selector
     document.querySelectorAll('#bedSelector .selector-btn').forEach(btn => {

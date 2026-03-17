@@ -1081,6 +1081,222 @@ body {
     margin-top: 1rem;
 }
 
+/* ---------- Selectable Service Cards ---------- */
+.pricing-hero-card.selectable,
+.freq-card.selectable,
+.pricing-single.selectable,
+.carpet-card.selectable,
+.addon-item.selectable {
+    cursor: pointer;
+    position: relative;
+}
+
+.select-check {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.select-check svg {
+    width: 14px;
+    height: 14px;
+    color: transparent;
+    transition: var(--transition);
+}
+
+.selected .select-check {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.selected .select-check svg {
+    color: #000;
+}
+
+.pricing-hero-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 40px rgba(221, 255, 0, 0.12);
+}
+
+.freq-card.selected {
+    border-color: var(--accent);
+    background: rgba(221, 255, 0, 0.06);
+}
+
+.pricing-single.selected {
+    border-color: var(--accent);
+    background: rgba(221, 255, 0, 0.04);
+}
+
+.carpet-card.selected {
+    border-color: var(--accent);
+    background: rgba(221, 255, 0, 0.04);
+}
+
+.addon-item.selected {
+    border-color: var(--accent);
+    background: rgba(221, 255, 0, 0.06);
+}
+
+.addon-item .select-check {
+    position: static;
+    width: 22px;
+    height: 22px;
+    margin-left: 10px;
+}
+
+.addon-item .select-check svg {
+    width: 12px;
+    height: 12px;
+}
+
+.cta-hint {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 1rem;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* ---------- Step 4: Booking ---------- */
+.slot-row {
+    display: flex;
+    gap: 10px;
+}
+
+.slot-date {
+    flex: 1.2;
+}
+
+.slot-time {
+    flex: 0.8;
+}
+
+.text-input select,
+select.text-input {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 40px;
+}
+
+/* Date input fix for dark theme */
+input[type="date"].text-input {
+    color-scheme: dark;
+}
+
+.booking-summary {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.booking-summary-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.booking-summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    font-size: 0.85rem;
+}
+
+.booking-summary-item:last-child {
+    border-bottom: none;
+}
+
+.booking-summary-name {
+    color: var(--text-dim);
+}
+
+.booking-summary-price {
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.booking-summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 1.5px solid var(--border);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.booking-summary-total .booking-summary-price {
+    font-size: 1.15rem;
+}
+
+/* Confirmation */
+.booking-confirmation {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    animation: fadeSlideIn 0.5s ease forwards;
+}
+
+.confirmation-icon {
+    margin-bottom: 1.5rem;
+}
+
+.confirmation-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.confirmation-text {
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    margin-bottom: 1.5rem;
+}
+
+.confirmation-details {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    text-align: left;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.8;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.confirmation-details strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
 /* ---------- Count-up animation ---------- */
 .price-animate {
     animation: priceReveal 0.6s ease forwards;
