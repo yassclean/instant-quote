@@ -7,11 +7,58 @@
     <title>YassClean | Instant Cleaning Quote</title>
     <meta name="description"
         content="Get an instant quote for premium cleaning services from YassClean. Deep cleaning, maintenance plans, carpet cleaning and more.">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/favicon.png">
+
+    <!-- Open Graph / Social Preview -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://quote.yassclean.com">
+    <meta property="og:title" content="YassClean | Instant Cleaning Quote">
+    <meta property="og:description" content="Get an instant quote for premium cleaning services — powered by real pricing, zero guesswork.">
+    <meta property="og:image" content="https://quote.yassclean.com/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="YassClean | Instant Cleaning Quote">
+    <meta name="twitter:description" content="Get an instant quote for premium cleaning services — powered by real pricing, zero guesswork.">
+    <meta name="twitter:image" content="https://quote.yassclean.com/og-image.png">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Manrope:wght@500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+
+    <!-- Google Analytics 4 + Google Ads -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-527JQM0W1E"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-527JQM0W1E');
+        // Uncomment and replace when you have your Google Ads conversion ID:
+        // gtag('config', 'AW-XXXXXXXXX');
+    </script>
+
+    <!-- Meta Pixel -->
+    <script>
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '657414903452348');
+        fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=657414903452348&ev=PageView&noscript=1"/></noscript>
 </head>
 
 <body>
@@ -23,7 +70,9 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="logo">
-            <span class="logo-yass">YASS</span><span class="logo-clean">CLEAN</span>
+            <a href="https://yassclean.com">
+                <img src="assets/logo.png" alt="YassClean" class="logo-img">
+            </a>
         </div>
         <div class="step-indicator" id="stepIndicator">
             <div class="step-dot active" data-step="1"><span>1</span></div>
@@ -61,11 +110,20 @@
                             placeholder="Enter your home address..." autocomplete="off">
                     </div>
                     <button id="getQuoteBtn" class="btn-primary" disabled>
-                        Get Quote
+                        Get My Instant Quote
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-arrow">
                             <path d="M5 12h14M12 5l7 7-7 7" />
                         </svg>
                     </button>
+
+                    <div class="or-divider"><span>or</span></div>
+
+                    <a href="tel:9739750177" class="btn-call">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-call-icon">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.574 2.81.7A2 2 0 0 1 22 16.92z"/>
+                        </svg>
+                        Call (973) 975-0177
+                    </a>
                 </div>
 
                 <div class="trust-badges">
@@ -101,7 +159,7 @@
                 <!-- Loading overlay for property lookup -->
                 <div id="lookupLoader" class="lookup-loader">
                     <div class="loader-spinner"></div>
-                    <p class="loader-text">Searching property records<span class="loader-dots"></span></p>
+                    <p class="loader-text">Finding your home details<span class="loader-dots"></span></p>
                     <p class="loader-sub" id="selectedAddressDisplay"></p>
                 </div>
 
@@ -183,6 +241,9 @@
                     </svg>
                 </button>
 
+                <!-- Promotion Banner (hidden by default, shown by JS if active) -->
+                <div id="promoBanner" class="promo-banner" style="display:none"></div>
+
                 <div class="quote-header">
                     <h2 class="section-title">Your Custom Quote</h2>
                     <div class="property-summary" id="propertySummary"></div>
@@ -194,11 +255,27 @@
                 <!-- Maintenance Plans -->
                 <h3 class="subsection-title">Maintenance Plans</h3>
                 <p class="subsection-sub">Save with recurring cleanings — same dedicated team every visit.</p>
+                <div class="plan-info-banner">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span>A recurring plan is <strong>completely optional</strong>. That said, most customers choose one after their first deep clean to keep their home consistently fresh. Selecting one here won't add to today's total — we'll get you set up after your first visit.</span>
+                </div>
                 <div id="maintenanceCards" class="pricing-grid"></div>
 
                 <!-- Move In/Out -->
                 <h3 class="subsection-title">Move In / Out Cleaning</h3>
                 <div id="moveInOutCard" class="pricing-single"></div>
+
+                <!-- Custom Quote -->
+                <div id="customQuoteCard" class="pricing-single custom-quote-card selectable" data-service-id="customQuote" data-service-name="Custom Quote" data-service-price="Custom">
+                    <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div class="single-info">
+                        <div class="single-title">Need a Custom Quote?</div>
+                        <div class="single-desc">Switching providers? Already have a recent clean? Let us build a custom plan for your home — no deep clean required.</div>
+                    </div>
+                    <div class="custom-quote-cta">
+                        <span class="custom-quote-arrow">→</span>
+                    </div>
+                </div>
 
                 <!-- Add-Ons -->
                 <h3 class="subsection-title">Customize Your Clean</h3>
@@ -208,6 +285,10 @@
                 <!-- Carpet Cleaning -->
                 <h3 class="subsection-title">Carpet Cleaning</h3>
                 <p class="subsection-sub">Professional hot-water extraction for a deeper clean.</p>
+                <div class="plan-info-banner">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span>Carpet cleaning can be added when you book. Here's a look at our pricing tiers so you know what to expect.</span>
+                </div>
                 <div id="carpetCards" class="pricing-grid carpet-grid"></div>
 
                 <!-- CTA — Continue to booking -->
@@ -254,26 +335,26 @@
                         </svg>
                         Preferred Date & Time — Slot 1
                     </label>
+                    <div class="first-available-row">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="firstAvailable" onchange="toggleFirstAvailable()">
+                            <span class="checkbox-custom"></span>
+                            First available date
+                        </label>
+                    </div>
                     <div class="slot-row">
                         <input type="date" id="slot1Date" class="text-input slot-date">
                         <select id="slot1Time" class="text-input slot-time">
                             <option value="">Time...</option>
-                            <option value="8:00 AM">8:00 AM</option>
                             <option value="9:00 AM">9:00 AM</option>
-                            <option value="10:00 AM">10:00 AM</option>
-                            <option value="11:00 AM">11:00 AM</option>
-                            <option value="12:00 PM">12:00 PM</option>
-                            <option value="1:00 PM">1:00 PM</option>
-                            <option value="2:00 PM">2:00 PM</option>
-                            <option value="3:00 PM">3:00 PM</option>
-                            <option value="4:00 PM">4:00 PM</option>
-                            <option value="5:00 PM">5:00 PM</option>
+                            <option value="Midday (11:30-1:30)">Midday (11:30–1:30)</option>
+                            <option value="Any Time">Any Time</option>
                         </select>
                     </div>
                 </div>
 
                 <!-- Preferred slot 2 -->
-                <div class="form-group">
+                <div class="form-group" id="slot2Group">
                     <label class="form-label">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="label-icon">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -284,16 +365,9 @@
                         <input type="date" id="slot2Date" class="text-input slot-date">
                         <select id="slot2Time" class="text-input slot-time">
                             <option value="">Time...</option>
-                            <option value="8:00 AM">8:00 AM</option>
                             <option value="9:00 AM">9:00 AM</option>
-                            <option value="10:00 AM">10:00 AM</option>
-                            <option value="11:00 AM">11:00 AM</option>
-                            <option value="12:00 PM">12:00 PM</option>
-                            <option value="1:00 PM">1:00 PM</option>
-                            <option value="2:00 PM">2:00 PM</option>
-                            <option value="3:00 PM">3:00 PM</option>
-                            <option value="4:00 PM">4:00 PM</option>
-                            <option value="5:00 PM">5:00 PM</option>
+                            <option value="Midday (11:30-1:30)">Midday (11:30–1:30)</option>
+                            <option value="Any Time">Any Time</option>
                         </select>
                     </div>
                 </div>
@@ -324,10 +398,29 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="label-icon">
                             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
                         </svg>
-                        Email <span class="optional-tag">optional</span>
+                        Email Address
                     </label>
                     <input type="email" id="contactEmail" class="text-input" placeholder="you@email.com">
                 </div>
+
+                <!-- Custom Quote Notes (shown only for custom quote requests) -->
+                <div id="customQuoteNotes" class="form-field" style="display:none">
+                    <label class="field-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            style="width:14px;height:14px">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                        Tell us about your situation
+                    </label>
+                    <textarea id="customNotes" class="text-input" rows="3" placeholder="e.g. Switching from another cleaning company, had a deep clean 2 months ago, looking for maintenance pricing..."></textarea>
+                </div>
+
+                <!-- Honeypot for bot detection (hidden from real users) -->
+                <input type="text" name="website" id="hpField" autocomplete="off" tabindex="-1" aria-hidden="true"
+                    style="position:absolute;left:-9999px;top:-9999px;width:0;height:0;overflow:hidden">
 
                 <button id="submitBookingBtn" class="btn-primary btn-large" disabled>
                     Request Booking
@@ -335,8 +428,11 @@
                         <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                 </button>
+                <p class="cta-note" style="margin-top:1rem;font-size:0.8rem;color:rgba(255,255,255,0.55)">
+                    🔒 Your info is safe &middot; Licensed &amp; insured &middot; 3,000+ homes cleaned &middot; 5-star Google rating
+                </p>
 
-                <!-- Confirmation (hidden by default) -->
+                <!-- Confirmation / Thank You (hidden by default) -->
                 <div id="bookingConfirmation" class="booking-confirmation" style="display:none">
                     <div class="confirmation-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;color:var(--accent)">
@@ -344,20 +440,84 @@
                         </svg>
                     </div>
                     <h3 class="confirmation-title">Booking Request Sent!</h3>
-                    <p class="confirmation-text">We'll confirm one of your preferred time slots within 24 hours.</p>
+                    <p class="confirmation-text">You'll receive a text shortly confirming we got your request. A team member will reach out within one business day to lock in your date. Please note we are closed on Sundays.</p>
                     <div id="confirmationDetails" class="confirmation-details"></div>
-                    <a href="https://yassclean.com" class="btn-primary" style="margin-top:1.5rem;text-decoration:none">
-                        Back to YassClean
-                    </a>
+
+                    <!-- What to Expect -->
+                    <div class="thankyou-section">
+                        <h4 class="thankyou-heading">📍 What Happens Next</h4>
+                        <div class="thankyou-timeline">
+                            <div class="timeline-item">
+                                <div class="timeline-step">1</div>
+                                <div class="timeline-content">
+                                    <strong>We Confirm Your Booking</strong>
+                                    <p>A team member will confirm your preferred date &amp; time within one business day.</p>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-step">2</div>
+                                <div class="timeline-content">
+                                    <strong>Reminders Before Your Clean</strong>
+                                    <p>You'll receive an email reminder 3 days before and a text 24 hours before with your team's arrival window.</p>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-step">3</div>
+                                <div class="timeline-content">
+                                    <strong>Cleaning Day</strong>
+                                    <p>You'll get a notification with live tracking when your cleaner is on the way. Chat with them directly if you need anything. Every clean is verified with a signed paper checklist, a digital checklist, and required before &amp; after photos.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- How to Prepare -->
+                    <div class="thankyou-section">
+                        <h4 class="thankyou-heading">✅ How to Prepare</h4>
+                        <ul class="thankyou-checklist">
+                            <li>Pick up toys, clothes, and personal items off floors &amp; counters</li>
+                            <li>Secure pets in a safe room or let us know about them</li>
+                            <li>Clear sink of dirty dishes so we can deep-clean it</li>
+                        </ul>
+                        <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.75rem">When we reach out to confirm, you can share entry instructions, focus areas, or anything else. You can also manage all of this from our <strong style="color:var(--text)">mobile app</strong> once your booking is set up.</p>
+                    </div>
+
+                    <!-- Meet the Family -->
+                    <div class="thankyou-section thankyou-family">
+                        <img src="assets/family.jpg" alt="Paul and Sydney — the family behind YassClean" class="family-photo">
+                        <div class="family-message">
+                            <h4 class="thankyou-heading">👋 Meet the Family Behind YassClean</h4>
+                            <p>We're Paul &amp; Sydney — a husband-and-wife team who started YassClean because we believe everyone deserves a truly clean home. Every member of our team is trained, vetted, and treats your home like their own. We can't wait to show you the difference.</p>
+                        </div>
+                    </div>
+
+                    <!-- CTA -->
+                    <div class="thankyou-cta">
+                        <p>Need to reach us sooner?</p>
+                        <a href="tel:+19734007089" class="btn-primary" style="text-decoration:none">
+                            📞 Call or Text Us
+                        </a>
+                        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem">Closed on Sundays</p>
+                        <a href="https://yassclean.com" class="btn-secondary" style="margin-top:0.75rem;text-decoration:none;display:inline-block">
+                            Visit YassClean.com
+                        </a>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
+    <script src="pricing-config.js"></script>
     <script src="app.js"></script>
     <script
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBgvJ0jAhyePXblXS8rE7Y2bdOTJvU7HCs&libraries=places&callback=initAutocomplete"
         async defer></script>
+
+    <!-- GHL External Tracking -->
+    <script
+        src="https://links.yassclean.com/js/external-tracking.js"
+        data-tracking-id="tk_da3f16f2159245099d284f3b873c1ce6">
+    </script>
 </body>
 
 </html>

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "quote-server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/pmcve/instant-quote/server.js"],
+      "port": 3000
+    }
+  ]
+}

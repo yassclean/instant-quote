@@ -16,7 +16,7 @@
     --bg: #0a0a0a;
     --bg-card: rgba(255, 255, 255, 0.035);
     --bg-card-hover: rgba(255, 255, 255, 0.06);
-    --border: rgba(255, 255, 255, 0.08);
+    --border: rgba(255, 255, 255, 0.06);
     --border-active: rgba(221, 255, 0, 0.4);
     --text: #ffffff;
     --text-dim: rgba(255, 255, 255, 0.55);
@@ -24,10 +24,12 @@
     --accent: #ddff00;
     --accent-dim: rgba(221, 255, 0, 0.15);
     --accent-glow: rgba(221, 255, 0, 0.25);
+    --accent-shadow: rgba(221, 255, 0, 0.08);
     --radius: 16px;
     --radius-sm: 10px;
     --radius-xs: 8px;
     --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-display: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --transition: 0.3s cubic-bezier(.4, 0, .2, 1);
 }
 
@@ -110,17 +112,39 @@ body {
 }
 
 .logo {
-    font-weight: 900;
-    font-size: 1.3rem;
-    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
 }
 
-.logo-yass {
-    color: var(--accent);
+.logo a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
 }
 
-.logo-clean {
-    color: var(--text);
+.logo-img {
+    height: 48px;
+    width: auto;
+    object-fit: contain;
+    animation: logoEntrance 0.8s ease-out;
+}
+
+@keyframes logoEntrance {
+    0% {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.9);
+        filter: brightness(0.5);
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(2px) scale(1.02);
+        filter: brightness(1.3);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: brightness(1);
+    }
 }
 
 /* Step Indicator */
@@ -232,8 +256,9 @@ body {
 }
 
 .hero-title {
+    font-family: var(--font-display);
     font-size: clamp(2.2rem, 6vw, 3.6rem);
-    font-weight: 900;
+    font-weight: 800;
     line-height: 1.1;
     letter-spacing: -0.03em;
     margin-bottom: 1rem;
@@ -250,6 +275,42 @@ body {
     line-height: 1.6;
     margin-bottom: 2.5rem;
     max-width: 460px;
+}
+
+/* Out-of-Area Message */
+.area-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.8rem 1rem;
+    background: rgba(255, 152, 0, 0.1);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    border-radius: var(--radius-xs);
+    font-size: 0.85rem;
+    color: #ffb74d;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.area-call-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    padding: 0.45rem 0.9rem;
+    background: rgba(221, 255, 0, 0.12);
+    border: 1px solid rgba(221, 255, 0, 0.3);
+    border-radius: var(--radius-xs);
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.area-call-btn:hover {
+    background: rgba(221, 255, 0, 0.2);
+    border-color: var(--accent);
 }
 
 /* Address Input */
@@ -355,6 +416,58 @@ body {
     display: none !important;
 }
 
+/* Or Divider */
+.or-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.or-divider::before,
+.or-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Call Button */
+.btn-call {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 28px;
+    height: 48px;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.btn-call:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(221, 255, 0, 0.06);
+}
+
+.btn-call-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
 /* Buttons */
 .btn-primary {
     display: inline-flex;
@@ -365,7 +478,7 @@ body {
     height: 56px;
     background: var(--accent);
     color: #000;
-    font-family: var(--font);
+    font-family: var(--font-display);
     font-size: 1rem;
     font-weight: 700;
     border: none;
@@ -375,6 +488,7 @@ body {
     letter-spacing: 0.01em;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 0 20px var(--accent-shadow), 0 0 60px rgba(221, 255, 0, 0.04);
 }
 
 .btn-primary::before {
@@ -570,8 +684,9 @@ body {
 }
 
 .section-title {
+    font-family: var(--font-display);
     font-size: clamp(1.5rem, 4vw, 2rem);
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: -0.02em;
     margin-bottom: 0.5rem;
 }
@@ -677,6 +792,84 @@ body {
     box-shadow: 0 0 0 4px var(--accent-dim);
 }
 
+/* Select dropdown dark theme fix */
+.text-input option {
+    background: #1a1a1a;
+    color: #fff;
+}
+
+.slot-row {
+    display: flex;
+    gap: 12px;
+}
+
+.slot-date {
+    flex: 1.2;
+}
+
+.slot-time {
+    flex: 1;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* First Available checkbox */
+.first-available-row {
+    margin-bottom: 1rem;
+    background: rgba(221, 255, 0, 0.04);
+    border: 1.5px solid rgba(221, 255, 0, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    transition: var(--transition);
+}
+
+.first-available-row:has(input:checked) {
+    background: rgba(221, 255, 0, 0.08);
+    border-color: var(--accent);
+    box-shadow: 0 0 16px rgba(221, 255, 0, 0.08);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.checkbox-label input[type="checkbox"] {
+    display: none;
+}
+
+.checkbox-custom {
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(221, 255, 0, 0.4);
+    border-radius: 5px;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(221, 255, 0, 0.3);
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {
+    content: '\2713';
+    color: #000;
+    font-size: 14px;
+    font-weight: 700;
+}
+
 /* ---------- Step 3: Pricing ---------- */
 .quote-header {
     margin-bottom: 2rem;
@@ -731,7 +924,7 @@ body {
 
 .pricing-hero-card:hover {
     border-color: rgba(221, 255, 0, 0.5);
-    box-shadow: 0 0 40px rgba(221, 255, 0, 0.08);
+    box-shadow: 0 0 40px var(--accent-shadow), 0 8px 30px rgba(0, 0, 0, 0.2);
 }
 
 .hero-card-info {
@@ -753,6 +946,7 @@ body {
 }
 
 .hero-card-title {
+    font-family: var(--font-display);
     font-size: 1.3rem;
     font-weight: 700;
     margin-bottom: 0.4rem;
@@ -806,6 +1000,69 @@ body {
     flex-shrink: 0;
 }
 
+/* Custom Quote Card */
+.custom-quote-card {
+    border-style: dashed !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    background: transparent !important;
+    margin-top: 0.5rem;
+}
+
+.custom-quote-card:hover {
+    border-color: var(--accent) !important;
+    background: rgba(221, 255, 0, 0.03) !important;
+}
+
+.custom-quote-card.selected {
+    border-color: var(--accent) !important;
+    border-style: solid !important;
+    background: rgba(221, 255, 0, 0.06) !important;
+}
+
+.custom-quote-cta {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.custom-quote-arrow {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    transition: var(--transition);
+}
+
+.custom-quote-card:hover .custom-quote-arrow,
+.custom-quote-card.selected .custom-quote-arrow {
+    color: var(--accent);
+    transform: translateX(4px);
+}
+
+/* Promotion Banner */
+.promo-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1.2rem;
+    background: linear-gradient(135deg, rgba(221, 255, 0, 0.12) 0%, rgba(221, 255, 0, 0.04) 100%);
+    border: 1px solid rgba(221, 255, 0, 0.25);
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 1.5rem;
+    animation: promoPulse 3s ease-in-out infinite;
+}
+
+.promo-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+@keyframes promoPulse {
+    0%, 100% { border-color: rgba(221, 255, 0, 0.25); }
+    50% { border-color: rgba(221, 255, 0, 0.5); }
+}
+
 /* Maintenance Frequency Cards */
 .pricing-grid {
     display: grid;
@@ -826,9 +1083,9 @@ body {
 
 .freq-card:hover {
     background: var(--bg-card-hover);
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.12);
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 30px var(--accent-shadow);
 }
 
 .freq-card.featured {
@@ -865,6 +1122,7 @@ body {
 }
 
 .freq-title {
+    font-family: var(--font-display);
     font-size: 0.95rem;
     font-weight: 600;
     margin-bottom: 0.25rem;
@@ -982,9 +1240,10 @@ body {
 }
 
 .addon-item {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
     align-items: center;
-    justify-content: space-between;
+    gap: 0 12px;
     padding: 14px 18px;
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -1002,12 +1261,62 @@ body {
 .addon-name {
     font-weight: 500;
     color: var(--text-dim);
+    grid-column: 1;
 }
 
 .addon-price {
     font-weight: 700;
     color: var(--accent);
     white-space: nowrap;
+    font-size: 0.85rem;
+    text-align: right;
+}
+
+/* Quantity counter for multi-select add-ons */
+.addon-qty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.addon-qty-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    line-height: 1;
+}
+
+.addon-qty-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(221, 255, 0, 0.08);
+}
+
+.addon-qty-count {
+    font-weight: 700;
+    font-size: 0.9rem;
+    min-width: 18px;
+    text-align: center;
+    color: var(--text);
+}
+
+.addon-item.has-qty {
+    cursor: default;
+}
+
+.addon-item.has-qty.selected {
+    border-color: var(--accent);
+    background: rgba(221, 255, 0, 0.04);
 }
 
 /* Carpet Grid */
@@ -1037,6 +1346,48 @@ body {
 
 .carpet-tier-accent {
     color: var(--accent);
+}
+
+.carpet-details-toggle {
+    font-size: 0.75rem;
+    color: var(--accent);
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.carpet-details-toggle:hover {
+    opacity: 1;
+}
+
+.carpet-details-toggle .toggle-arrow {
+    transition: transform 0.2s;
+    font-size: 0.85rem;
+}
+
+.carpet-details-toggle.open .toggle-arrow {
+    transform: rotate(180deg);
+}
+
+.carpet-desc {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.5;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+    margin-bottom: 0;
+}
+
+.carpet-desc.open {
+    max-height: 300px;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .carpet-row {
@@ -1098,8 +1449,8 @@ body {
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    border: 2px solid var(--border);
-    background: var(--bg-card);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.06);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1256,6 +1607,77 @@ input[type="date"].text-input {
     font-size: 1.15rem;
 }
 
+.booking-summary-recurring {
+    border-top: 1px dashed var(--border);
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.booking-summary-recurring-note {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 0.5rem;
+    padding: 8px 12px;
+    background: rgba(221, 255, 0, 0.04);
+    border-radius: var(--radius-xs);
+    border-left: 2px solid var(--accent);
+}
+
+.recurring-badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 100px;
+    background: rgba(221, 255, 0, 0.1);
+    color: var(--accent);
+    border: 1px solid rgba(221, 255, 0, 0.2);
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.recurring-price-dim {
+    opacity: 0.5;
+}
+
+.booking-summary-note {
+    font-size: 0.8rem;
+    color: #ff9f43;
+    padding: 10px 12px;
+    background: rgba(255, 159, 67, 0.08);
+    border-radius: var(--radius-xs);
+    border-left: 2px solid #ff9f43;
+    margin-bottom: 0.75rem;
+}
+
+.plan-info-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(221, 255, 0, 0.04);
+    border: 1px solid rgba(221, 255, 0, 0.15);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-xs);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin-bottom: 1.25rem;
+}
+
+.plan-info-banner strong {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.plan-info-banner svg {
+    color: var(--accent);
+    margin-top: 1px;
+}
+
 /* Confirmation */
 .booking-confirmation {
     text-align: center;
@@ -1268,6 +1690,7 @@ input[type="date"].text-input {
 }
 
 .confirmation-title {
+    font-family: var(--font-display);
     font-size: 1.5rem;
     font-weight: 800;
     margin-bottom: 0.5rem;
@@ -1297,6 +1720,221 @@ input[type="date"].text-input {
     font-weight: 600;
 }
 
+/* ---------- Thank You Page ---------- */
+.thankyou-section {
+    margin-top: 2rem;
+    text-align: left;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.thankyou-heading {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+}
+
+/* Timeline */
+.thankyou-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.timeline-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.timeline-step {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 800;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.timeline-content {
+    flex: 1;
+}
+
+.timeline-content strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.timeline-content p {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-top: 0.15rem;
+    line-height: 1.5;
+}
+
+/* Checklist */
+.thankyou-checklist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.thankyou-checklist li {
+    padding: 0.6rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.4;
+}
+
+.thankyou-checklist li::before {
+    content: '\2610  ';
+    color: var(--accent);
+}
+
+/* Family Section */
+.thankyou-family {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 1.25rem;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+}
+
+.family-photo {
+    width: 120px;
+    height: 120px;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.family-message p {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-top: 0.5rem;
+}
+
+.thankyou-cta {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.thankyou-cta p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+}
+
+.btn-secondary {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    transition: color 0.2s;
+}
+
+.btn-secondary:hover {
+    color: var(--accent);
+}
+
+@media (max-width: 500px) {
+    .thankyou-family {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    .family-photo {
+        margin: 0 auto;
+        width: 100px;
+        height: 100px;
+    }
+}
+
+/* ---------- Deep Clean FAQ Toggle ---------- */
+.deep-clean-faq-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--accent);
+    cursor: pointer;
+    margin-top: 0.5rem;
+    font-weight: 600;
+    transition: opacity 0.2s;
+}
+
+.deep-clean-faq-toggle:hover {
+    opacity: 0.8;
+}
+
+.deep-clean-faq-toggle .faq-arrow {
+    transition: transform 0.3s;
+    font-size: 0.7rem;
+}
+
+.deep-clean-faq-toggle.open .faq-arrow {
+    transform: rotate(180deg);
+}
+
+.deep-clean-faq-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s;
+    opacity: 0;
+}
+
+.deep-clean-faq-content.open {
+    max-height: 400px;
+    opacity: 1;
+}
+
+.deep-clean-faq-inner {
+    margin-top: 0.75rem;
+    padding: 1rem;
+    background: rgba(255,255,255,0.03);
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+}
+
+.deep-clean-faq-inner strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.faq-includes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-top: 0.5rem;
+}
+
+.faq-includes span {
+    font-size: 0.8rem;
+}
+
+.faq-includes span::before {
+    content: '\2713 ';
+    color: var(--accent);
+    font-weight: 700;
+}
+
 /* ---------- Count-up animation ---------- */
 .price-animate {
     animation: priceReveal 0.6s ease forwards;
@@ -1312,6 +1950,18 @@ input[type="date"].text-input {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Submit button spinner */
+.btn-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(0, 0, 0, 0.2);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
 }
 
 /* ---------- Responsive ---------- */

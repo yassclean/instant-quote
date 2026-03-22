@@ -3,73 +3,29 @@
    Pricing engine, Google Maps autocomplete, step navigation
    ============================================================ */
 
-// ==================== PRICING DATA ====================
-const PRICING = {
-    maintenance: {
-        '1-1': 150, '2-1': 178, '2-2': 214,
-        '3-1': 205, '3-2': 242, '3-3': 279,
-        '4-1': 233, '4-2': 270, '4-3': 306, '4-4': 343
-    },
-    deepClean: {
-        '1-1': 225, '2-1': 266, '2-2': 321,
-        '3-1': 308, '3-2': 363, '3-3': 418,
-        '4-1': 349, '4-2': 404, '4-3': 459, '4-4': 515
-    },
-    moveInOut: {
-        '1-1': 299, '2-1': 355, '2-2': 428,
-        '3-1': 410, '3-2': 483, '3-3': 557,
-        '4-1': 465, '4-2': 539, '4-3': 612, '4-4': 686
-    }
-};
+// ==================== PRICING DATA (from pricing-config.js) ====================
+const PRICING = CONFIG.pricing;
+const TIER_MATRIX = CONFIG.tierMatrix;
+const CARPET = CONFIG.carpet;
+const CARPET_DESCRIPTIONS = CONFIG.carpetDescriptions;
+const EXTRAS = CONFIG.extras;
+const CARPET_EXTRAS = CONFIG.carpetExtras;
+const FREQUENCY_TIERS = CONFIG.frequencyTiers;
 
-// Square footage tier matrix — shared across all service categories.
-// When actual sqft falls outside the threshold range for a bed/bath combo,
-// pricing shifts to the adjacent tier combo.
-const TIER_MATRIX = {
-    '1-1': { baselineSqft: 700,  downMax: 560,  upMin: 840,  downTo: null,  upTo: '2-1' },
-    '2-1': { baselineSqft: 900,  downMax: 720,  upMin: 1080, downTo: '1-1', upTo: '2-2' },
-    '2-2': { baselineSqft: 1050, downMax: 840,  upMin: 1260, downTo: '2-1', upTo: '3-1' },
-    '3-1': { baselineSqft: 1200, downMax: 960,  upMin: 1440, downTo: '2-1', upTo: '3-2' },
-    '3-2': { baselineSqft: 1450, downMax: 1160, upMin: 1740, downTo: '3-1', upTo: '3-3' },
-    '3-3': { baselineSqft: 1750, downMax: 1400, upMin: 2100, downTo: '3-2', upTo: '4-2' },
-    '4-1': { baselineSqft: 1650, downMax: 1320, upMin: 1980, downTo: '3-2', upTo: '4-2' },
-    '4-2': { baselineSqft: 1950, downMax: 1560, upMin: 2340, downTo: '4-1', upTo: '4-3' },
-    '4-3': { baselineSqft: 2300, downMax: 1840, upMin: 2760, downTo: '4-2', upTo: '4-4' },
-    '4-4': { baselineSqft: 2800, downMax: 2240, upMin: 3360, downTo: '4-3', upTo: null  }  // null = custom surcharge
-};
+// ==================== PROMOTION ENGINE ====================
+function getActivePromotion() {
+    const promo = CONFIG.promotion;
+    if (!promo) return null;
+    if (promo.expiresAt && new Date(promo.expiresAt) < new Date()) return null;
+    return promo;
+}
 
-const CARPET = {
-    'Basic Deep Extraction': { '1-2 Rooms': 150, '3-4 Rooms': 299, '5+ Rooms': 449 },
-    'Basic + Stain & Odor': { '1-2 Rooms': 196, '3-4 Rooms': 380, '5+ Rooms': 564 },
-    'Ultimate + Stain Guard': { '1-2 Rooms': 219, '3-4 Rooms': 426, '5+ Rooms': 633 }
-};
-
-const EXTRAS = [
-    { name: 'Deep Clean Add-On', price: 100 },
-    { name: 'Interior Window Detailing', price: 50 },
-    { name: 'Additional Bathroom', price: 40 },
-    { name: 'Additional Room', price: 28 },
-    { name: 'Finished Basement', price: 28 },
-    { name: 'Tile & Grout Cleaning', price: 35 },
-    { name: 'Inside Fridge', price: 55 },
-    { name: 'Inside Oven', price: 35 }
-];
-
-const CARPET_EXTRAS = [
-    { name: 'Extra Room (100 sqft)', price: 58 },
-    { name: 'Hallway Cleaning', price: 29 },
-    { name: 'Landing / Walk-In Closet', price: 23 },
-    { name: 'Staircase (per flight)', price: 52 },
-    { name: 'Extra Deodorizer (per room)', price: 29 },
-    { name: 'Extra Stain Guard (per room)', price: 58 }
-];
-
-const FREQUENCY_TIERS = [
-    { key: 'oneTime', label: 'One-Time', discount: 0, badge: null },
-    { key: 'monthly', label: 'Monthly', discount: 0.10, badge: null },
-    { key: 'biweekly', label: 'Bi-Weekly', discount: 0.15, badge: { text: 'Most Popular', cls: 'badge-popular' } },
-    { key: 'weekly', label: 'Weekly', discount: 0.20, badge: { text: 'Best Value', cls: 'badge-best' } }
-];
+function applyPromoDiscount(price, category) {
+    const promo = getActivePromotion();
+    if (!promo || !promo.appliesTo.includes(category)) return { price, hasPromo: false };
+    const discounted = +(price * (1 - promo.discount)).toFixed(2);
+    return { price: discounted, originalPrice: price, hasPromo: true, promoLabel: promo.banner };
+}
 
 // ==================== STATE ====================
 const state = {
@@ -78,8 +34,25 @@ const state = {
     beds: null,
     baths: null,
     sqft: null,
-    selectedServices: []  // { id, name, price }
+    selectedServices: [],  // { id, name, price }
+    apiProperty: { beds: null, baths: null, sqft: null, source: null }  // API-populated values
 };
+
+// Capture UTM params & fbclid on page load for attribution
+(function captureAttribution() {
+    const params = new URLSearchParams(window.location.search);
+    state.attribution = {
+        utm_source: params.get('utm_source') || '',
+        utm_medium: params.get('utm_medium') || '',
+        utm_campaign: params.get('utm_campaign') || '',
+        utm_content: params.get('utm_content') || '',
+        utm_term: params.get('utm_term') || '',
+        fbclid: params.get('fbclid') || '',
+        gclid: params.get('gclid') || '',
+        landing_page: window.location.href,
+        referrer: document.referrer || ''
+    };
+})();
 
 // ==================== DOM REFS ====================
 const $ = id => document.getElementById(id);
@@ -102,14 +75,68 @@ function initAutocomplete() {
         const place = autocomplete.getPlace();
         if (place && place.formatted_address) {
             state.address = place.formatted_address;
+            state.addressConfirmed = true;
+
+            // Service area check — 25 mile radius from Lake Hopatcong
+            const SERVICE_CENTER = { lat: 40.9631, lng: -74.6107 };
+            const MAX_MILES = 25;
+
+            if (place.geometry && place.geometry.location) {
+                const lat = place.geometry.location.lat();
+                const lng = place.geometry.location.lng();
+                const distance = haversineDistance(SERVICE_CENTER.lat, SERVICE_CENTER.lng, lat, lng);
+
+                if (distance > MAX_MILES) {
+                    state.addressConfirmed = false;
+                    $('getQuoteBtn').disabled = true;
+                    showAreaMessage(`We currently serve within ${MAX_MILES} miles of Lake Hopatcong, NJ. Your address is about ${Math.round(distance)} miles away — but give us a call, we may still be able to help!`, true);
+                    return;
+                }
+                hideAreaMessage();
+            }
+
             $('getQuoteBtn').disabled = false;
         }
     });
 
-    // Also enable button on manual typing (if > 10 chars)
+    // If user edits the text after selecting, clear the confirmed address
     input.addEventListener('input', () => {
-        $('getQuoteBtn').disabled = input.value.trim().length < 10;
+        state.addressConfirmed = false;
+        state.address = '';
+        $('getQuoteBtn').disabled = true;
+        hideAreaMessage();
     });
+}
+
+// Haversine formula — returns distance in miles between two lat/lng points
+function haversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 3958.8; // Earth radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function showAreaMessage(msg, showCall) {
+    let el = $('areaMessage');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'areaMessage';
+        el.className = 'area-message';
+        $('getQuoteBtn').parentElement.insertBefore(el, $('getQuoteBtn'));
+    }
+    const callBtn = showCall
+        ? `<a href="tel:9739750177" class="area-call-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.574 2.81.7A2 2 0 0 1 22 16.92z"/></svg> (973) 975-0177</a>`
+        : '';
+    el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${msg}${callBtn}</span>`;
+    el.style.display = 'flex';
+}
+
+function hideAreaMessage() {
+    const el = $('areaMessage');
+    if (el) el.style.display = 'none';
 }
 // Expose globally for Google Maps callback
 window.initAutocomplete = initAutocomplete;
@@ -136,6 +163,20 @@ function goToStep(n) {
 
     state.currentStep = n;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Fire Meta Pixel events for funnel step tracking
+    if (typeof fbq === 'function') {
+        if (n === 2) fbq('trackCustom', 'PropertyLookup');
+        if (n === 3) fbq('track', 'ViewContent', { content_name: 'Pricing' });
+        if (n === 4) fbq('track', 'InitiateCheckout');
+    }
+
+    // Fire GA4 events for funnel step tracking
+    if (typeof gtag === 'function') {
+        if (n === 2) gtag('event', 'begin_property_lookup', { event_category: 'funnel' });
+        if (n === 3) gtag('event', 'view_pricing', { event_category: 'funnel' });
+        if (n === 4) gtag('event', 'begin_checkout', { event_category: 'funnel' });
+    }
 }
 
 // ==================== PROPERTY LOOKUP ====================
@@ -187,6 +228,13 @@ async function performPropertyLookup() {
     // Pre-fill selectors if we got data
     if (lookupResult) {
         console.log('Lookup result:', JSON.stringify(lookupResult));
+        // Store API-populated values for the booking payload
+        state.apiProperty = {
+            beds: lookupResult.beds || null,
+            baths: lookupResult.baths || null,
+            sqft: lookupResult.sqft || null,
+            source: lookupResult.source || null
+        };
         // Use setTimeout to ensure DOM has fully rendered after step transition
         setTimeout(() => {
             if (lookupResult.beds) prefillSelector('bedSelector', lookupResult.beds);
@@ -283,6 +331,16 @@ function renderPricing() {
     if (sqft) summaryHTML += `<span class="divider"></span><span>${Number(sqft).toLocaleString()} sqft</span>`;
     summary.innerHTML = summaryHTML;
 
+    // Promotion Banner
+    const promo = getActivePromotion();
+    const promoBanner = $('promoBanner');
+    if (promo) {
+        promoBanner.innerHTML = `<span class="promo-icon">🎉</span> ${promo.banner}${promo.promoCode ? ` — Code: <strong>${promo.promoCode}</strong>` : ''}`;
+        promoBanner.style.display = 'flex';
+    } else {
+        promoBanner.style.display = 'none';
+    }
+
     // 1. Deep Clean Hero Card
     const deepResult = getPrice('deepClean', beds, baths, sqft);
     const dp = formatPrice(deepResult.price);
@@ -299,6 +357,27 @@ function renderPricing() {
             <div class="hero-card-badge">✨ Recommended First Visit</div>
             <div class="hero-card-title">Residential Deep Clean</div>
             <div class="hero-card-desc">A thorough, top-to-bottom cleaning of your entire home. Perfect for first-time customers or seasonal refreshes.</div>
+            <div class="deep-clean-faq-toggle" onclick="event.stopPropagation();this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+                What's Included? <span class="faq-arrow">▾</span>
+            </div>
+            <div class="deep-clean-faq-content">
+                <div class="deep-clean-faq-inner">
+                    <strong>Why a deep clean?</strong> Your first visit takes extra time because we bring everything to a maintainable baseline. Homes without regular professional cleaning need 2–3× more time.
+                    <br><br>
+                    <strong>What's covered:</strong>
+                    <div class="faq-includes">
+                        <span>Kitchen, baths &amp; floors</span>
+                        <span>Baseboards &amp; trim</span>
+                        <span>Switch plates &amp; outlets</span>
+                        <span>Light fixtures</span>
+                        <span>Door frames &amp; handles</span>
+                        <span>High-touch surfaces</span>
+                        <span>Full dusting throughout</span>
+                    </div>
+                    <br>
+                    <em style="color:var(--text-muted)">After the deep clean, maintenance visits keep everything fresh at a lower price.</em>
+                </div>
+            </div>
         </div>
         <div class="hero-card-price">
             <div class="price-large price-animate">${deepResult.customSurcharge ? 'Custom' : `$${dp.dollars}<span class="price-cents">.${dp.cents}</span>`}</div>
@@ -338,8 +417,8 @@ function renderPricing() {
                 <ul class="freq-features">
                     <li>Same dedicated team</li>
                     <li>Flexible scheduling</li>
-                    ${tier.discount >= 0.15 ? '<li>Priority booking</li>' : ''}
-                    ${tier.discount >= 0.20 ? '<li>Free supplies included</li>' : ''}
+                    <li>Priority booking</li>
+                    <li>Free supplies included</li>
                 </ul>
             </div>`;
     });
@@ -369,16 +448,33 @@ function renderPricing() {
     // 4. Add-Ons
     let addonsHTML = '';
     EXTRAS.forEach(e => {
-        addonsHTML += `
-            <div class="addon-item selectable" data-service-id="addon-${e.name.replace(/\s+/g, '-').toLowerCase()}" data-service-name="${e.name}" data-service-price="${e.price}">
-                <span class="addon-name">${e.name}</span>
-                <span class="addon-price">+$${e.price}</span>
-                <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-            </div>`;
+        const addonId = `addon-${e.name.replace(/\s+/g, '-').toLowerCase()}`;
+        if (e.multiQty) {
+            // Multi-quantity: stepper buttons
+            const unitLabel = e.perUnit ? ` ${e.perUnit}` : ' each';
+            addonsHTML += `
+                <div class="addon-item has-qty" data-service-id="${addonId}" data-service-name="${e.name}" data-service-price="${e.price}">
+                    <span class="addon-name">${e.name}</span>
+                    <span class="addon-price">$${e.price}${unitLabel}</span>
+                    <div class="addon-qty">
+                        <button type="button" class="addon-qty-btn" data-dir="-1" data-addon-id="${addonId}">−</button>
+                        <span class="addon-qty-count" id="qty-${addonId}">0</span>
+                        <button type="button" class="addon-qty-btn" data-dir="1" data-addon-id="${addonId}">+</button>
+                    </div>
+                </div>`;
+        } else {
+            // Simple toggle
+            addonsHTML += `
+                <div class="addon-item selectable" data-service-id="${addonId}" data-service-name="${e.name}" data-service-price="${e.price}">
+                    <span class="addon-name">${e.name}</span>
+                    <span class="addon-price">+$${e.price}</span>
+                    <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>`;
+        }
     });
     $('addOnsGrid').innerHTML = addonsHTML;
 
-    // 5. Carpet Cleaning
+    // 5. Carpet Cleaning (informational only — not selectable)
     let carpetHTML = '';
     Object.entries(CARPET).forEach(([tier, sizes]) => {
         let rowsHTML = '';
@@ -389,11 +485,13 @@ function renderPricing() {
                     <span class="carpet-price">$${price}</span>
                 </div>`;
         });
-        const minCarpetPrice = Math.min(...Object.values(sizes));
         carpetHTML += `
-            <div class="carpet-card selectable" data-service-id="carpet-${tier.replace(/\s+/g, '-').toLowerCase()}" data-service-name="Carpet — ${tier}" data-service-price="${minCarpetPrice}">
-                <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="carpet-card">
                 <div class="carpet-tier">${tier.includes('Ultimate') ? '<span class="carpet-tier-accent">★ </span>' : ''}${tier}</div>
+                <div class="carpet-details-toggle" onclick="this.nextElementSibling.classList.toggle('open');this.classList.toggle('open')">
+                    Details <span class="toggle-arrow">▾</span>
+                </div>
+                <div class="carpet-desc">${CARPET_DESCRIPTIONS[tier] || ''}</div>
                 ${rowsHTML}
             </div>`;
     });
@@ -418,6 +516,16 @@ function renderPricing() {
     document.querySelectorAll('.selectable').forEach(card => {
         card.addEventListener('click', () => toggleServiceSelection(card));
     });
+
+    // Attach quantity stepper handlers
+    document.querySelectorAll('.addon-qty-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const addonId = btn.dataset.addonId;
+            const dir = parseInt(btn.dataset.dir);
+            adjustQty(addonId, dir);
+        });
+    });
 }
 
 // ==================== SERVICE SELECTION ====================
@@ -426,11 +534,31 @@ function toggleServiceSelection(card) {
     const name = card.dataset.serviceName;
     const price = card.dataset.servicePrice;
 
+    // Skip multi-qty items — they use stepper buttons instead
+    if (card.classList.contains('has-qty')) return;
+
     // For maintenance cards, only allow one frequency selected at a time
     if (id.startsWith('maintenance-')) {
+        const wasSelected = card.classList.contains('selected');
         document.querySelectorAll('.freq-card.selected').forEach(el => {
             el.classList.remove('selected');
-            state.selectedServices = state.selectedServices.filter(s => !s.id.startsWith('maintenance-'));
+        });
+        state.selectedServices = state.selectedServices.filter(s => !s.id.startsWith('maintenance-'));
+        if (wasSelected) {
+            updateSelectionUI();
+            return;
+        }
+    }
+
+    // Deep Clean, Move In/Out, and Custom Quote are mutually exclusive
+    const exclusiveIds = ['deepClean', 'moveInOut', 'customQuote'];
+    if (exclusiveIds.includes(id)) {
+        exclusiveIds.filter(eid => eid !== id).forEach(otherId => {
+            const otherCard = document.querySelector(`[data-service-id="${otherId}"]`);
+            if (otherCard && otherCard.classList.contains('selected')) {
+                otherCard.classList.remove('selected');
+                state.selectedServices = state.selectedServices.filter(s => s.id !== otherId);
+            }
         });
     }
 
@@ -446,23 +574,75 @@ function toggleServiceSelection(card) {
     updateSelectionUI();
 }
 
+// Stepper for multi-quantity add-ons
+function adjustQty(addonId, dir) {
+    const card = document.querySelector(`[data-service-id="${addonId}"]`);
+    const countEl = document.getElementById(`qty-${addonId}`);
+    if (!card || !countEl) return;
+
+    let current = parseInt(countEl.textContent) || 0;
+    current = Math.max(0, Math.min(10, current + dir));
+    countEl.textContent = current;
+
+    const name = card.dataset.serviceName;
+    const unitPrice = parseFloat(card.dataset.servicePrice);
+
+    // Remove old entry
+    state.selectedServices = state.selectedServices.filter(s => s.id !== addonId);
+    card.classList.remove('selected');
+
+    // Add with quantity if > 0
+    if (current > 0) {
+        const totalPrice = unitPrice * current;
+        state.selectedServices.push({
+            id: addonId,
+            name: current > 1 ? `${name} ×${current}` : name,
+            price: totalPrice.toString(),
+            qty: current,
+            unitPrice
+        });
+        card.classList.add('selected');
+    }
+
+    updateSelectionUI();
+}
+
 function updateSelectionUI() {
     const btn = $('continueToBookBtn');
     const hint = $('selectionHint');
-    const count = state.selectedServices.length;
-    btn.disabled = count === 0;
-    hint.textContent = count === 0
-        ? "Tap the services above to select what you'd like to book"
-        : `${count} service${count > 1 ? 's' : ''} selected`;
+    const todayServices = state.selectedServices.filter(s => !s.id.startsWith('maintenance-'));
+    const recurringPlan = state.selectedServices.find(s => s.id.startsWith('maintenance-'));
+    const todayCount = todayServices.length;
+    const hasAnything = state.selectedServices.length > 0;
+
+    btn.disabled = !hasAnything;
+
+    if (!hasAnything) {
+        hint.textContent = "Tap the services above to select what you'd like to book";
+    } else if (todayCount === 0 && recurringPlan) {
+        hint.textContent = "Recurring plan selected — add a deep clean to book your first visit";
+    } else if (todayCount > 0 && recurringPlan) {
+        hint.textContent = `${todayCount} service${todayCount > 1 ? 's' : ''} selected + recurring plan for after`;
+    } else {
+        hint.textContent = `${todayCount} service${todayCount > 1 ? 's' : ''} selected`;
+    }
 }
 
 // ==================== BOOKING SUMMARY & SUBMISSION ====================
 function renderBookingSummary() {
-    let html = '<div class="booking-summary-title">Selected Services</div>';
+    // Separate today's services from recurring plan selection
+    const todayServices = state.selectedServices.filter(s => !s.id.startsWith('maintenance-'));
+    const recurringPlan = state.selectedServices.find(s => s.id.startsWith('maintenance-'));
+
+    let html = '<div class="booking-summary-title">Today\'s Booking</div>';
     let total = 0;
     let hasCustom = false;
 
-    state.selectedServices.forEach(s => {
+    if (todayServices.length === 0 && recurringPlan) {
+        html += `<div class="booking-summary-note">A deep clean is required before starting a recurring plan. Go back to select one.</div>`;
+    }
+
+    todayServices.forEach(s => {
         const isCustom = s.price === 'Custom';
         if (isCustom) hasCustom = true;
         else total += parseFloat(s.price);
@@ -476,60 +656,192 @@ function renderBookingSummary() {
 
     html += `
         <div class="booking-summary-total">
-            <span>Estimated Total</span>
+            <span>Due at First Visit</span>
             <span class="booking-summary-price">${hasCustom ? 'From $' + total.toFixed(2) + '+' : '$' + total.toFixed(2)}</span>
         </div>`;
 
+    // Show recurring plan as separate informational section
+    if (recurringPlan) {
+        const isCustom = recurringPlan.price === 'Custom';
+        html += `
+            <div class="booking-summary-recurring">
+                <div class="booking-summary-title" style="margin-top:1rem">
+                    Recurring Plan
+                    <span class="recurring-badge">Starts Later</span>
+                </div>
+                <div class="booking-summary-item">
+                    <span class="booking-summary-name">${recurringPlan.name}</span>
+                    <span class="booking-summary-price recurring-price-dim">${isCustom ? 'Custom' : '$' + parseFloat(recurringPlan.price).toFixed(2) + '/visit'}</span>
+                </div>
+                <div class="booking-summary-recurring-note">Not included in today's total. After your first clean, we'll reach out to set up your recurring schedule.</div>
+            </div>`;
+    }
+
     $('bookingSummary').innerHTML = html;
 
-    // Set min date to tomorrow
+    // Set min date to tomorrow and block Sundays
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
+    // If tomorrow is Sunday, push to Monday
+    if (tomorrow.getDay() === 0) tomorrow.setDate(tomorrow.getDate() + 1);
     const minDate = tomorrow.toISOString().split('T')[0];
     $('slot1Date').min = minDate;
     $('slot2Date').min = minDate;
+
+    // Disable Sundays in date pickers
+    const blockSundays = (e) => {
+        const date = new Date(e.target.value + 'T12:00:00');
+        if (date.getDay() === 0) {
+            e.target.value = '';
+            e.target.setCustomValidity('We are closed on Sundays');
+            e.target.reportValidity();
+            setTimeout(() => e.target.setCustomValidity(''), 2000);
+        }
+    };
+    $('slot1Date').addEventListener('change', blockSundays);
+    $('slot2Date').addEventListener('change', blockSundays);
+}
+
+function toggleFirstAvailable() {
+    const checked = $('firstAvailable').checked;
+    const slot1Row = $('slot1Date').closest('.slot-row');
+    const slot2Group = document.getElementById('slot2Group');
+
+    if (checked) {
+        slot1Row.style.display = 'none';
+        slot2Group.style.display = 'none';
+        // Set values so validation passes
+        $('slot1Date').value = 'first-available';
+        $('slot1Time').value = 'Any Time';
+        $('slot2Date').value = 'first-available';
+        $('slot2Time').value = 'Any Time';
+    } else {
+        slot1Row.style.display = '';
+        slot2Group.style.display = '';
+        $('slot1Date').value = '';
+        $('slot1Time').value = '';
+        $('slot2Date').value = '';
+        $('slot2Time').value = '';
+    }
+    checkBookingReady();
 }
 
 function checkBookingReady() {
     const name = $('contactName').value.trim();
     const phone = $('contactPhone').value.trim();
-    const slot1Date = $('slot1Date').value;
-    const slot1Time = $('slot1Time').value;
-    const slot2Date = $('slot2Date').value;
-    const slot2Time = $('slot2Time').value;
+    const email = $('contactEmail').value.trim();
+    const firstAvail = $('firstAvailable').checked;
 
-    const ready = name && phone && slot1Date && slot1Time && slot2Date && slot2Time;
+    let slotsReady = firstAvail;
+    if (!firstAvail) {
+        const slot1Date = $('slot1Date').value;
+        const slot1Time = $('slot1Time').value;
+        const slot2Date = $('slot2Date').value;
+        const slot2Time = $('slot2Time').value;
+        slotsReady = slot1Date && slot1Time && slot2Date && slot2Time;
+    }
+
+    const ready = name && phone && email && slotsReady;
     $('submitBookingBtn').disabled = !ready;
 }
 
-function submitBooking() {
+async function submitBooking() {
+    const todayServices = state.selectedServices.filter(s => !s.id.startsWith('maintenance-'));
+    const recurringPlan = state.selectedServices.find(s => s.id.startsWith('maintenance-'));
+    const totalDueToday = todayServices.reduce((sum, s) => sum + (s.price === 'Custom' ? 0 : parseFloat(s.price)), 0);
+
     const bookingData = {
-        address: state.address,
-        beds: state.beds,
-        baths: state.baths,
-        sqft: state.sqft,
-        services: state.selectedServices,
-        slot1: { date: $('slot1Date').value, time: $('slot1Time').value },
-        slot2: { date: $('slot2Date').value, time: $('slot2Time').value },
         name: $('contactName').value.trim(),
         phone: $('contactPhone').value.trim(),
-        email: $('contactEmail').value.trim()
+        email: $('contactEmail').value.trim(),
+        address: state.address,
+        property: {
+            beds_api: state.apiProperty.beds,
+            baths_api: state.apiProperty.baths,
+            sqft_api: state.apiProperty.sqft,
+            beds_entered: state.beds,
+            baths_entered: state.baths,
+            sqft_entered: state.sqft,
+            lookup_source: state.apiProperty.source
+        },
+        services: {
+            today: todayServices.map(s => ({ name: s.name, price: s.price === 'Custom' ? 'Custom' : parseFloat(s.price) })),
+            recurring: recurringPlan ? { name: recurringPlan.name, price: recurringPlan.price === 'Custom' ? 'Custom' : parseFloat(recurringPlan.price) } : null,
+            total_due_today: totalDueToday
+        },
+        preferred_slots: {
+            first_available: $('firstAvailable').checked,
+            slot1: { date: $('slot1Date').value, time: $('slot1Time').value },
+            slot2: { date: $('slot2Date').value, time: $('slot2Time').value }
+        },
+        source: state.selectedServices.some(s => s.id === 'customQuote') ? 'custom-quote' : 'instant-quote',
+        custom_notes: $('customNotes') ? $('customNotes').value.trim() : '',
+        submitted_at: new Date().toISOString(),
+        attribution: state.attribution,
+        // Bot protection fields
+        _hp: $('hpField').value,
+        _ts: state.step4Timestamp ? (Date.now() - state.step4Timestamp) : 0
     };
 
-    // Log for now — future: send to API / email
-    console.log('Booking submitted:', JSON.stringify(bookingData, null, 2));
+    // Show loading state
+    const btn = $('submitBookingBtn');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="btn-spinner"></span> Submitting...`;
+
+    try {
+        const res = await fetch('/api/book', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bookingData)
+        });
+        const result = await res.json();
+        console.log('Booking response:', result);
+    } catch (err) {
+        console.warn('Booking submission error:', err);
+        // Continue to confirmation anyway — graceful degradation
+    }
+
+    // Fire Meta Pixel Lead event
+    if (typeof fbq === 'function') {
+        fbq('track', 'Lead', {
+            content_name: todayServices.map(s => s.name).join(', '),
+            value: totalDueToday,
+            currency: 'USD'
+        });
+    }
+
+    // Fire Google Analytics 4 lead/conversion event
+    if (typeof gtag === 'function') {
+        gtag('event', 'generate_lead', {
+            currency: 'USD',
+            value: totalDueToday
+        });
+        // Uncomment when Google Ads Conversion ID + Label are configured:
+        // gtag('event', 'conversion', {
+        //     send_to: 'AW-XXXXXXXXX/LABEL_HERE',
+        //     value: totalDueToday,
+        //     currency: 'USD'
+        // });
+    }
 
     // Show confirmation
-    const formatDate = (d) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const isFirstAvailable = $('firstAvailable').checked;
+    const formatDate = (d) => d === 'first-available' ? 'First Available' : new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+    const slotsHTML = isFirstAvailable
+        ? 'First available date & time'
+        : `1. ${formatDate(bookingData.preferred_slots.slot1.date)} — ${bookingData.preferred_slots.slot1.time}<br>
+        2. ${formatDate(bookingData.preferred_slots.slot2.date)} — ${bookingData.preferred_slots.slot2.time}`;
 
     $('confirmationDetails').innerHTML = `
         <strong>${bookingData.name}</strong><br>
-        ${bookingData.phone}${bookingData.email ? '<br>' + bookingData.email : ''}<br><br>
+        ${bookingData.phone}<br>${bookingData.email}<br><br>
         <strong>Preferred times:</strong><br>
-        1. ${formatDate(bookingData.slot1.date)} at ${bookingData.slot1.time}<br>
-        2. ${formatDate(bookingData.slot2.date)} at ${bookingData.slot2.time}<br><br>
+        ${slotsHTML}<br><br>
         <strong>Services:</strong><br>
-        ${bookingData.services.map(s => s.name).join('<br>')}
+        ${bookingData.services.today.map(s => s.name).join('<br>')}
+        ${bookingData.services.recurring ? '<br><em>' + bookingData.services.recurring.name + ' (starts later)</em>' : ''}
     `;
 
     // Hide form, show confirmation
@@ -542,10 +854,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Step 1 → Step 2
     $('getQuoteBtn').addEventListener('click', () => {
-        if (!state.address) state.address = $('addressInput').value.trim();
+        if (!state.addressConfirmed || !state.address) {
+            $('addressInput').focus();
+            return;
+        }
         goToStep(2);
         performPropertyLookup();
     });
+
+    // Auto-focus address input for ad traffic
+    setTimeout(() => $('addressInput').focus(), 500);
 
     // Step 2 → Step 1
     $('backToStep1').addEventListener('click', () => goToStep(1));
@@ -557,13 +875,22 @@ document.addEventListener('DOMContentLoaded', () => {
     $('continueToBookBtn').addEventListener('click', () => {
         renderBookingSummary();
         goToStep(4);
+        state.step4Timestamp = Date.now();
+        // Show/hide custom notes based on whether custom quote is selected
+        const isCustom = state.selectedServices.some(s => s.id === 'customQuote');
+        $('customQuoteNotes').style.display = isCustom ? 'block' : 'none';
+        // Pre-check 'First Available' by default to reduce friction
+        if (!$('firstAvailable').checked) {
+            $('firstAvailable').checked = true;
+            toggleFirstAvailable();
+        }
     });
 
     // Step 4 → Step 3
     $('backToStep3').addEventListener('click', () => goToStep(3));
 
     // Booking form validation
-    ['slot1Date', 'slot1Time', 'slot2Date', 'slot2Time', 'contactName', 'contactPhone'].forEach(id => {
+    ['slot1Date', 'slot1Time', 'slot2Date', 'slot2Time', 'contactName', 'contactPhone', 'contactEmail'].forEach(id => {
         $(id).addEventListener('input', checkBookingReady);
         $(id).addEventListener('change', checkBookingReady);
     });

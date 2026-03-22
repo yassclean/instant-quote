@@ -2,6 +2,9 @@
     "functions": {
         "api/lookup.js": {
             "maxDuration": 30
+        },
+        "api/book.js": {
+            "maxDuration": 10
         }
     },
     "rewrites": [

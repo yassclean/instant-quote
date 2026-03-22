@@ -15,6 +15,34 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+// ==================== ADDRESS CACHE ====================
+const addressCache = new Map();
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_MAX = 500;
+
+function normalizeAddress(addr) {
+    return addr.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function getCached(address) {
+    const key = normalizeAddress(address);
+    const entry = addressCache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.ts > CACHE_TTL) {
+        addressCache.delete(key);
+        return null;
+    }
+    return entry.data;
+}
+
+function setCache(address, data) {
+    if (addressCache.size >= CACHE_MAX) {
+        const oldest = addressCache.keys().next().value;
+        addressCache.delete(oldest);
+    }
+    addressCache.set(normalizeAddress(address), { data, ts: Date.now() });
+}
+
 // ==================== PROPERTY LOOKUP ENDPOINT ====================
 app.post('/api/lookup', async (req, res) => {
     const { address } = req.body;
@@ -23,12 +51,21 @@ app.post('/api/lookup', async (req, res) => {
         return res.status(400).json({ error: 'Address is required' });
     }
 
+    // Check cache first
+    const cached = getCached(address);
+    if (cached) {
+        console.log(`\n  Looking up: ${address}`);
+        console.log('  ✓ Cache hit');
+        return res.json(cached);
+    }
+
     try {
         const result = await lookupProperty(
             address,
             process.env.PERPLEXITY_API_KEY,
             process.env.RENTCAST_API_KEY
         );
+        setCache(address, result);
         res.json(result);
     } catch (err) {
         console.error('Lookup error:', err.message);
@@ -40,7 +77,84 @@ app.post('/api/lookup', async (req, res) => {
     }
 });
 
-// ==================== RENTCAST API (primary) ====================
+// ==================== BOOKING ENDPOINT ====================
+app.post('/api/book', async (req, res) => {
+    const data = req.body;
+
+    if (!data || !data.phone) {
+        return res.status(400).json({ error: 'Booking data with phone is required' });
+    }
+
+    // ==================== BOT PROTECTION ====================
+    if (data._hp) {
+        console.warn('  Bot detected (honeypot):', data.phone);
+        return res.json({ success: true, message: 'Booking received' });
+    }
+    if (data._ts && data._ts < 3000) {
+        console.warn('  Bot detected (too fast):', data._ts, 'ms');
+        return res.json({ success: true, message: 'Booking received' });
+    }
+    const clientIP = req.ip || 'unknown';
+    if (!global._bookingRateMap) global._bookingRateMap = new Map();
+    const rateData = global._bookingRateMap.get(clientIP) || { count: 0, resetAt: Date.now() + 3600000 };
+    if (Date.now() > rateData.resetAt) { rateData.count = 0; rateData.resetAt = Date.now() + 3600000; }
+    rateData.count++;
+    global._bookingRateMap.set(clientIP, rateData);
+    if (rateData.count > 5) {
+        console.warn('  Rate limited:', clientIP);
+        return res.status(429).json({ error: 'Too many requests' });
+    }
+    delete data._hp;
+    delete data._ts;
+
+    console.log(`\n  \ud83d\udccb New booking from: ${data.name} (${data.phone})`);
+    console.log('  Services:', data.services?.today?.map(s => s.name).join(', '));
+    console.log('  Total due today: $' + data.services?.total_due_today);
+
+    // Flatten nested data into simple strings for GHL field mapping
+    const todayList = (data.services?.today || []);
+    data.services_list = todayList.map(s => s.name).join(', ');
+    data.services_with_prices = todayList.map(s => `${s.name} ($${s.price})`).join(', ');
+    data.recurring_plan = data.services?.recurring ? `${data.services.recurring.name} — $${data.services.recurring.price}/visit` : 'None';
+    data.quote_total = data.services?.total_due_today || 0;
+    data.first_available = data.preferred_slots?.first_available || false;
+    data.slot1_formatted = data.first_available ? 'First Available' : (data.preferred_slots?.slot1 ? `${data.preferred_slots.slot1.date} at ${data.preferred_slots.slot1.time}` : '');
+    data.slot2_formatted = data.first_available ? 'First Available' : (data.preferred_slots?.slot2 ? `${data.preferred_slots.slot2.date} at ${data.preferred_slots.slot2.time}` : '');
+    data.bedrooms = data.property?.beds_entered || null;
+    data.bathrooms = data.property?.baths_entered || null;
+    data.sqft = data.property?.sqft_entered || null;
+
+    // Flatten attribution for GHL
+    data.utm_source = data.attribution?.utm_source || '';
+    data.utm_medium = data.attribution?.utm_medium || '';
+    data.utm_campaign = data.attribution?.utm_campaign || '';
+    data.utm_content = data.attribution?.utm_content || '';
+    data.fbclid = data.attribution?.fbclid || '';
+    data.gclid = data.attribution?.gclid || '';
+    data.landing_page = data.attribution?.landing_page || '';
+    data.referrer = data.attribution?.referrer || '';
+
+    const webhookUrl = process.env.MAKECOM_WEBHOOK_URL;
+
+    if (webhookUrl && webhookUrl !== 'your-webhook-url-here') {
+        try {
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            console.log('  Make.com webhook:', response.ok ? 'OK' : `Error ${response.status}`);
+        } catch (err) {
+            console.warn('  Webhook error:', err.message);
+        }
+    } else {
+        console.log('  ⚠ MAKECOM_WEBHOOK_URL not configured — data logged only');
+    }
+
+    res.json({ success: true, message: 'Booking received' });
+});
+
+// ==================== RENTCAST API (fallback — only called when fields are missing) ====================
 async function lookupViaRentcast(address, apiKey) {
     const url = `https://api.rentcast.io/v1/properties?address=${encodeURIComponent(address)}&limit=1`;
     const response = await fetch(url, {
@@ -59,7 +173,7 @@ async function lookupViaRentcast(address, apiKey) {
     if (!prop) return null;
 
     const beds = sanitizeInt(prop.bedrooms, 1, 10);
-    const baths = sanitizeInt(prop.bathrooms, 1, 10);
+    const baths = sanitizeBaths(prop.bathrooms, 1, 10);
     const sqft = sanitizeInt(prop.squareFootage, 100, 50000);
 
     // Return whatever Rentcast found — even partial data is valuable
@@ -68,7 +182,7 @@ async function lookupViaRentcast(address, apiKey) {
     return { beds, baths, sqft, source: 'rentcast.io' };
 }
 
-// ==================== PERPLEXITY API (fallback) ====================
+// ==================== PERPLEXITY API (primary — cheap, AI-powered) ====================
 async function lookupViaPerplexity(address, apiKey) {
     if (!apiKey || apiKey === 'your-key-here') return null;
 
@@ -83,14 +197,14 @@ async function lookupViaPerplexity(address, apiKey) {
             messages: [
                 {
                     role: 'system',
-                    content: 'You are a property data assistant. Return ONLY a JSON object with numeric values, nothing else.'
+                    content: 'You look up residential property details. Search real estate websites to find accurate data. Always end your response with a JSON object on its own line.'
                 },
                 {
                     role: 'user',
-                    content: `How many bedrooms, bathrooms, and square feet is the home at ${address}? Search Zillow, Realtor.com, Redfin, county tax records, or any real estate site. Reply ONLY with: {"beds":NUMBER,"baths":NUMBER,"sqft":NUMBER}`
+                    content: `Find the property listing for: ${address}\n\nSearch Zillow, Realtor.com, Redfin, Trulia, or county tax/assessor records to find how many bedrooms, bathrooms, and the square footage.\n\nAfter searching, respond with ONLY this JSON (use null for any value you cannot confirm, NEVER use 0):\n{"beds":NUMBER_OR_NULL,"baths":NUMBER_OR_NULL,"sqft":NUMBER_OR_NULL}`
                 }
             ],
-            max_tokens: 150
+            max_tokens: 200
         })
     });
 
@@ -107,7 +221,7 @@ async function lookupViaPerplexity(address, apiKey) {
         try {
             const parsed = JSON.parse(jsonMatch[0]);
             beds = sanitizeInt(parsed.beds, 1, 10);
-            baths = sanitizeInt(parsed.baths, 1, 10);
+            baths = sanitizeBaths(parsed.baths, 1, 10);
             sqft = sanitizeInt(parsed.sqft, 100, 50000);
             if (typeof parsed.source === 'string') source = parsed.source;
         } catch (e) { /* JSON parse failed, fall through to text parsing */ }
@@ -120,7 +234,7 @@ async function lookupViaPerplexity(address, apiKey) {
     }
     if (!baths) {
         const bathMatch = content.match(/(\d+(?:\.\d+)?)\s*(?:bath|ba\b|bathroom)/i);
-        if (bathMatch) baths = sanitizeInt(Math.round(parseFloat(bathMatch[1])), 1, 10);
+        if (bathMatch) baths = sanitizeBaths(parseFloat(bathMatch[1]), 1, 10);
     }
     if (!sqft) {
         const sqftMatch = content.match(/([\d,]+)\s*(?:sq|sqft|square)/i);
@@ -130,27 +244,12 @@ async function lookupViaPerplexity(address, apiKey) {
     return { beds, baths, sqft, source, confidence: (beds && baths) ? 'medium' : 'low' };
 }
 
-// ==================== ORCHESTRATION (merge strategy) ====================
+// ==================== ORCHESTRATION (Perplexity first, Rentcast gap-filler) ====================
 async function lookupProperty(address, perplexityKey, rentcastKey) {
     let merged = { beds: null, baths: null, sqft: null, source: null, confidence: 'none' };
 
-    // 1. Try Rentcast first (structured property records)
-    if (rentcastKey && rentcastKey !== 'your-key-here') {
-        try {
-            const rc = await lookupViaRentcast(address, rentcastKey);
-            if (rc) {
-                merged = { ...merged, ...pickNonNull(rc), source: 'rentcast.io' };
-                console.log('  Rentcast found:', JSON.stringify(rc));
-            } else {
-                console.log('  Rentcast: no results');
-            }
-        } catch (err) {
-            console.warn('  Rentcast error:', err.message);
-        }
-    }
-
-    // 2. If any fields are still missing, try Perplexity (with retries for reliability)
-    const MAX_RETRIES = 3;
+    // 1. Try Perplexity first (cheap — ~$0.01/call)
+    const MAX_RETRIES = 2;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         if (merged.beds && merged.baths && merged.sqft) break;
 
@@ -162,11 +261,7 @@ async function lookupProperty(address, perplexityKey, rentcastKey) {
                 if (!merged.beds && pp.beds) merged.beds = pp.beds;
                 if (!merged.baths && pp.baths) merged.baths = pp.baths;
                 if (!merged.sqft && pp.sqft) merged.sqft = pp.sqft;
-                if (merged.source && merged.source !== pp.source) {
-                    merged.source = merged.source + ' + ' + (pp.source || 'web search');
-                } else if (!merged.source) {
-                    merged.source = pp.source;
-                }
+                if (!merged.source) merged.source = pp.source;
                 if (merged.beds && merged.baths) break;
             }
         } catch (err) {
@@ -176,6 +271,32 @@ async function lookupProperty(address, perplexityKey, rentcastKey) {
         if (attempt < MAX_RETRIES && (!merged.beds || !merged.baths)) {
             await new Promise(r => setTimeout(r, 1000));
         }
+    }
+
+    // 2. Only call Rentcast if fields are still missing (expensive — $0.20/call)
+    const needsMore = !merged.beds || !merged.baths || !merged.sqft;
+    if (needsMore && rentcastKey && rentcastKey !== 'your-key-here') {
+        try {
+            console.log('  Perplexity incomplete — trying Rentcast for missing fields...');
+            const rc = await lookupViaRentcast(address, rentcastKey);
+            if (rc) {
+                console.log('  Rentcast found:', JSON.stringify(rc));
+                if (!merged.beds && rc.beds) merged.beds = rc.beds;
+                if (!merged.baths && rc.baths) merged.baths = rc.baths;
+                if (!merged.sqft && rc.sqft) merged.sqft = rc.sqft;
+                if (merged.source) {
+                    merged.source = merged.source + ' + rentcast.io';
+                } else {
+                    merged.source = 'rentcast.io';
+                }
+            } else {
+                console.log('  Rentcast: no results');
+            }
+        } catch (err) {
+            console.warn('  Rentcast error:', err.message);
+        }
+    } else if (!needsMore) {
+        console.log('  ✓ All fields found — skipping Rentcast');
     }
 
     // Set confidence based on how much we found
@@ -201,20 +322,30 @@ function sanitizeInt(val, min, max) {
     return n;
 }
 
+// Half baths round UP (2.5 → 3, 1.5 → 2)
+function sanitizeBaths(val, min, max) {
+    if (val === null || val === undefined) return null;
+    const f = parseFloat(val);
+    if (isNaN(f)) return null;
+    const n = Math.ceil(f);
+    if (n < min || n > max) return null;
+    return n;
+}
+
 // ==================== START SERVER ====================
 app.listen(PORT, () => {
     console.log(`\n  🧹 YassClean server running at http://localhost:${PORT}\n`);
-    const rc = process.env.RENTCAST_API_KEY;
     const pp = process.env.PERPLEXITY_API_KEY;
-    if (rc && rc !== 'your-key-here') {
-        console.log('  ✓ Rentcast API (primary)');
-    } else {
-        console.log('  ⚠ Set RENTCAST_API_KEY in .env for best results');
-    }
+    const rc = process.env.RENTCAST_API_KEY;
     if (pp && pp !== 'your-key-here') {
-        console.log('  ✓ Perplexity API (fallback)');
+        console.log('  ✓ Perplexity API (primary — cheap)');
     } else {
-        console.log('  ⚠ Set PERPLEXITY_API_KEY in .env for fallback lookups');
+        console.log('  ⚠ Set PERPLEXITY_API_KEY in .env for property lookups');
+    }
+    if (rc && rc !== 'your-key-here') {
+        console.log('  ✓ Rentcast API (fallback — fills missing fields)');
+    } else {
+        console.log('  ⚠ Set RENTCAST_API_KEY in .env for fallback lookups');
     }
     console.log('');
 });
