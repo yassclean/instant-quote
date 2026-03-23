@@ -83,15 +83,23 @@ const CONFIG = {
     ],
 
     // -------------------- PROMOTIONS --------------------
-    // Set to null to disable. Example promotion:
-    //
-    // promotion: {
-    //     banner: '🌸 Spring Cleaning Special — 15% Off Deep Cleans!',
-    //     discount: 0.15,
-    //     appliesTo: ['deepClean'],       // 'deepClean', 'maintenance', 'moveInOut', 'extras'
-    //     promoCode: 'SPRING15',          // optional — shown in banner
-    //     expiresAt: '2026-04-30'         // optional — auto-disables after this date
-    // }
-    //
-    promotion: null
+    // Global promotion — shown on ALL pages (set to null to disable)
+    promotion: null,
+
+    // -------------------- OFFERS (URL-BASED) --------------------
+    // Path-based offers — only activate when user lands on that URL
+    // Update seasonally; no code changes needed, just edit this config.
+    offers: {
+        '/offer': {
+            name: 'Spring Refresh',
+            headline: 'Your Offer Has Been Unlocked',
+            tagline: 'Spring Refresh Special — Limited Time Only',
+            freeAddons: ['Tile & Grout Detailing', 'Inside Oven'],
+            partnerPerk: {
+                text: 'Get $50 off exterior yard cleanup from our partner',
+                condition: 'when you set up recurring service'
+            },
+            urgencyNote: 'This exclusive offer is only available through this link'
+        }
+    }
 };

@@ -90,6 +90,20 @@
         <!-- ==================== STEP 1: ADDRESS ==================== -->
         <section id="step1" class="step active">
             <div class="step-inner">
+
+                <!-- Offer Hero (hidden by default, activated by JS for /offer) -->
+                <div id="offerHero" class="offer-hero" style="display:none">
+                    <div class="offer-hero-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32">
+                            <path d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
+                        </svg>
+                    </div>
+                    <h2 class="offer-hero-headline" id="offerHeadline"></h2>
+                    <p class="offer-hero-tagline" id="offerTagline"></p>
+                    <div class="offer-hero-perks" id="offerPerks"></div>
+                    <p class="offer-hero-urgency" id="offerUrgency"></p>
+                </div>
+
                 <div class="hero-badge">Instant Quote</div>
                 <h1 class="hero-title">
                     Sparkling clean,<br>

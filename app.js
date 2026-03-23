@@ -54,6 +54,40 @@ const state = {
     };
 })();
 
+// ==================== OFFER DETECTION ====================
+(function detectOffer() {
+    const path = window.location.pathname;
+    const offers = CONFIG.offers || {};
+    const offer = offers[path] || null;
+    state.offer = offer;
+
+    if (offer) {
+        // Track offer source in attribution
+        state.attribution.offer = offer.name;
+
+        // Render the offer hero
+        const hero = document.getElementById('offerHero');
+        if (hero) {
+            document.getElementById('offerHeadline').textContent = offer.headline;
+            document.getElementById('offerTagline').textContent = offer.tagline;
+
+            let perksHTML = '';
+            if (offer.freeAddons && offer.freeAddons.length) {
+                offer.freeAddons.forEach(name => {
+                    perksHTML += `<div class="offer-perk-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg> Free ${name}</div>`;
+                });
+            }
+            if (offer.partnerPerk) {
+                perksHTML += `<div class="offer-perk-tag offer-perk-partner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> ${offer.partnerPerk.text}</div>`;
+            }
+            document.getElementById('offerPerks').innerHTML = perksHTML;
+            document.getElementById('offerUrgency').textContent = offer.urgencyNote || '';
+
+            hero.style.display = 'flex';
+        }
+    }
+})();
+
 // ==================== DOM REFS ====================
 const $ = id => document.getElementById(id);
 const stepSections = [null, $('step1'), $('step2'), $('step3'), $('step4')];
@@ -420,6 +454,7 @@ function renderPricing() {
                     <li>Priority booking</li>
                     <li>Free supplies included</li>
                 </ul>
+                ${(state.offer && state.offer.partnerPerk && tier.key !== 'oneTime') ? `<div class="partner-perk-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> ${state.offer.partnerPerk.text}</div>` : ''}
             </div>`;
     });
     $('maintenanceCards').innerHTML = freqHTML;
@@ -446,16 +481,20 @@ function renderPricing() {
         </div>`;
 
     // 4. Add-Ons
+    const freeAddons = (state.offer && state.offer.freeAddons) || [];
     let addonsHTML = '';
     EXTRAS.forEach(e => {
         const addonId = `addon-${e.name.replace(/\s+/g, '-').toLowerCase()}`;
+        const isFree = freeAddons.includes(e.name);
         if (e.multiQty) {
-            // Multi-quantity: stepper buttons
             const unitLabel = e.perUnit ? ` ${e.perUnit}` : ' each';
+            const priceDisplay = isFree
+                ? `<span class="addon-price-free">FREE</span> <span class="addon-price-original">$${e.price}${unitLabel}</span>`
+                : `$${e.price}${unitLabel}`;
             addonsHTML += `
-                <div class="addon-item has-qty" data-service-id="${addonId}" data-service-name="${e.name}" data-service-price="${e.price}">
-                    <span class="addon-name">${e.name}</span>
-                    <span class="addon-price">$${e.price}${unitLabel}</span>
+                <div class="addon-item has-qty${isFree ? ' addon-free' : ''}" data-service-id="${addonId}" data-service-name="${e.name}" data-service-price="${isFree ? 0 : e.price}">
+                    <span class="addon-name">${e.name}${isFree ? ' <span class="addon-included-tag">INCLUDED</span>' : ''}</span>
+                    <span class="addon-price">${priceDisplay}</span>
                     <div class="addon-qty">
                         <button type="button" class="addon-qty-btn" data-dir="-1" data-addon-id="${addonId}">−</button>
                         <span class="addon-qty-count" id="qty-${addonId}">0</span>
@@ -463,11 +502,13 @@ function renderPricing() {
                     </div>
                 </div>`;
         } else {
-            // Simple toggle
+            const priceDisplay = isFree
+                ? `<span class="addon-price-free">FREE</span> <span class="addon-price-original">$${e.price}</span>`
+                : `+$${e.price}`;
             addonsHTML += `
-                <div class="addon-item selectable" data-service-id="${addonId}" data-service-name="${e.name}" data-service-price="${e.price}">
-                    <span class="addon-name">${e.name}</span>
-                    <span class="addon-price">+$${e.price}</span>
+                <div class="addon-item selectable${isFree ? ' addon-free' : ''}" data-service-id="${addonId}" data-service-name="${e.name}" data-service-price="${isFree ? 0 : e.price}">
+                    <span class="addon-name">${e.name}${isFree ? ' <span class="addon-included-tag">INCLUDED</span>' : ''}</span>
+                    <span class="addon-price">${priceDisplay}</span>
                     <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
                 </div>`;
         }

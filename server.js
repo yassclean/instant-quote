@@ -15,6 +15,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+// Serve index.html for /offer (promo landing page)
+app.get('/offer', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // ==================== ADDRESS CACHE ====================
 const addressCache = new Map();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
