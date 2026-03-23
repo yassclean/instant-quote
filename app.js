@@ -438,7 +438,7 @@ function renderPricing() {
         <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
         <div class="single-info">
             <div class="single-title">Move In / Out Cleaning</div>
-            <div class="single-desc">Comprehensive cleaning for move days. Every surface, appliance, and corner — ready for the next chapter.</div>
+            <div class="single-desc">Comprehensive cleaning for move days — includes inside fridge, oven, and window detailing. Every surface, appliance, and corner — ready for the next chapter.</div>
         </div>
         <div class="move-price-wrapper">
             <div class="single-price price-animate">${moveResult.customSurcharge ? 'Custom' : `$${mp.dollars}<span class="cents">.${mp.cents}</span>`}</div>
@@ -473,6 +473,33 @@ function renderPricing() {
         }
     });
     $('addOnsGrid').innerHTML = addonsHTML;
+    // Generate filtered add-ons for Move In/Out (fridge & oven already included)
+    const MOVE_EXCLUDED = ['Inside Fridge', 'Inside Oven'];
+    let moveAddonsHTML = '';
+    EXTRAS.filter(e => !MOVE_EXCLUDED.includes(e.name)).forEach(e => {
+        const addonId = `addon-${e.name.replace(/\s+/g, '-').toLowerCase()}-move`;
+        if (e.multiQty) {
+            const unitLabel = e.perUnit ? ` ${e.perUnit}` : ' each';
+            moveAddonsHTML += `
+                <div class="addon-item has-qty" data-service-id="${addonId}" data-service-name="${e.name}" data-service-price="${e.price}">
+                    <span class="addon-name">${e.name}</span>
+                    <span class="addon-price">$${e.price}${unitLabel}</span>
+                    <div class="addon-qty">
+                        <button type="button" class="addon-qty-btn" data-dir="-1" data-addon-id="${addonId}">−</button>
+                        <span class="addon-qty-count" id="qty-${addonId}">0</span>
+                        <button type="button" class="addon-qty-btn" data-dir="1" data-addon-id="${addonId}">+</button>
+                    </div>
+                </div>`;
+        } else {
+            moveAddonsHTML += `
+                <div class="addon-item selectable" data-service-id="${addonId}" data-service-name="${e.name}" data-service-price="${e.price}">
+                    <span class="addon-name">${e.name}</span>
+                    <span class="addon-price">+$${e.price}</span>
+                    <div class="select-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>`;
+        }
+    });
+    $('addOnsGridMove').innerHTML = moveAddonsHTML;
 
     // 5. Carpet Cleaning (informational only — not selectable)
     let carpetHTML = '';
@@ -507,9 +534,12 @@ function renderPricing() {
     </div>`;
 
     $('carpetCards').innerHTML = carpetHTML;
+    // Clone carpet HTML for the Move In/Out section
+    $('carpetCardsMove').innerHTML = carpetHTML;
 
-    // Reset selections
+    // Reset selections and service type
     state.selectedServices = [];
+    state.serviceType = null;
     updateSelectionUI();
 
     // Attach click handlers to all selectable cards
@@ -526,6 +556,58 @@ function renderPricing() {
             adjustQty(addonId, dir);
         });
     });
+
+    // Attach service-type selector handlers
+    document.querySelectorAll('.service-type-card').forEach(card => {
+        card.addEventListener('click', () => {
+            selectServiceType(card.dataset.serviceType);
+        });
+    });
+}
+
+// ==================== SERVICE TYPE SELECTION ====================
+function selectServiceType(type) {
+    state.serviceType = type;
+
+    // Clear any previous selections when switching types
+    state.selectedServices = [];
+    document.querySelectorAll('.selectable.selected').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.addon-qty-count').forEach(el => el.textContent = '0');
+    document.querySelectorAll('.addon-item.has-qty.selected').forEach(el => el.classList.remove('selected'));
+
+    // Update active state on type cards
+    document.querySelectorAll('.service-type-card').forEach(c => {
+        c.classList.toggle('active', c.dataset.serviceType === type);
+    });
+
+    // Show/hide the pricing sections
+    const sections = {
+        deepClean: $('sectionDeepClean'),
+        moveInOut: $('sectionMoveInOut'),
+        customQuote: $('sectionCustomQuote')
+    };
+    Object.entries(sections).forEach(([key, el]) => {
+        el.style.display = key === type ? 'block' : 'none';
+    });
+
+    // Show the CTA section
+    $('ctaSection').style.display = 'flex';
+
+    // For custom quote, auto-select the card
+    if (type === 'customQuote') {
+        const customCard = $('customQuoteCard');
+        toggleServiceSelection(customCard);
+    }
+
+    // Scroll to the revealed content
+    const targetSection = sections[type];
+    if (targetSection) {
+        setTimeout(() => {
+            targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+    }
+
+    updateSelectionUI();
 }
 
 // ==================== SERVICE SELECTION ====================
@@ -817,12 +899,11 @@ async function submitBooking() {
             currency: 'USD',
             value: totalDueToday
         });
-        // Uncomment when Google Ads Conversion ID + Label are configured:
-        // gtag('event', 'conversion', {
-        //     send_to: 'AW-XXXXXXXXX/LABEL_HERE',
-        //     value: totalDueToday,
-        //     currency: 'USD'
-        // });
+        gtag('event', 'conversion', {
+            send_to: 'AW-11119987979/-vkaCJLQxY0cEIuatrYp',
+            value: totalDueToday,
+            currency: 'USD'
+        });
     }
 
     // Show confirmation

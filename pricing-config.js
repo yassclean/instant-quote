@@ -47,7 +47,7 @@ const CONFIG = {
         { name: 'Additional Bathroom', price: 40, multiQty: true },
         { name: 'Additional Room', price: 28 },
         { name: 'Finished Basement', price: 28 },
-        { name: 'Tile & Grout Cleaning', price: 35, multiQty: true, perUnit: 'per room' },
+        { name: 'Tile & Grout Detailing', price: 35, multiQty: true, perUnit: 'per room' },
         { name: 'Inside Fridge', price: 55, multiQty: true },
         { name: 'Inside Oven', price: 35, multiQty: true }
     ],

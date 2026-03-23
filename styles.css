@@ -588,6 +588,33 @@ body {
 }
 
 /* ---------- Step 2: Property Details ---------- */
+
+/* Address Trust Strip */
+.address-trust-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.address-trust-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.address-trust-item svg {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    margin-top: 1px;
+}
+
+/* ---------- Step 2: Property Details ---------- */
 .lookup-loader {
     display: flex;
     flex-direction: column;
@@ -868,6 +895,121 @@ body {
     color: #000;
     font-size: 14px;
     font-weight: 700;
+}
+
+/* ---------- Service Type Selector ---------- */
+.service-type-selector {
+    margin-bottom: 2rem;
+}
+
+.service-type-prompt {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.service-type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.service-type-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.5rem 1rem;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: var(--font);
+    text-align: center;
+    color: var(--text);
+}
+
+.service-type-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--bg-card-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.service-type-card.active {
+    border-color: var(--accent);
+    background: rgba(221, 255, 0, 0.06);
+    box-shadow: 0 0 30px var(--accent-shadow), 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.service-type-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(221, 255, 0, 0.08);
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.service-type-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.service-type-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: -0.01em;
+}
+
+.service-type-desc {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* Pricing section reveal animation */
+.pricing-section {
+    animation: revealSection 0.4s ease-out;
+}
+
+@keyframes revealSection {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 600px) {
+    .service-type-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .service-type-card {
+        flex-direction: row;
+        text-align: left;
+        padding: 1rem 1.25rem;
+        gap: 0.75rem;
+    }
+
+    .service-type-icon {
+        font-size: 1.5rem;
+    }
+
+    .service-type-card > :last-child {
+        flex: 1;
+    }
 }
 
 /* ---------- Step 3: Pricing ---------- */
