@@ -80,7 +80,13 @@ const state = {
             badge.classList.add('hero-badge-promo');
         }
 
-        // 3. Update subtitle with perk details
+        // 3. Swap hero title to campaign headline
+        const heroTitle = document.getElementById('heroTitle');
+        if (heroTitle) {
+            heroTitle.innerHTML = 'Spring cleaning?<br><span class="accent yass-underline">Yass</span> please.';
+        }
+
+        // 4. Update subtitle with perk details
         const heroSub = document.querySelector('.hero-sub');
         if (heroSub) {
             heroSub.innerHTML = `Get a personalized quote with <strong>free ${(offer.freeAddons || []).join(' & ')}</strong> included — limited time only.`;
