@@ -53,8 +53,8 @@ module.exports = async function handler(req, res) {
     data.recurring_plan = data.services?.recurring ? `${data.services.recurring.name} — $${data.services.recurring.price}/visit` : 'None';
     data.quote_total = data.services?.total_due_today || 0;
     data.first_available = data.preferred_slots?.first_available || false;
-    data.slot1_formatted = data.first_available ? 'First Available' : (data.preferred_slots?.slot1 ? `${data.preferred_slots.slot1.date} at ${data.preferred_slots.slot1.time}` : '');
-    data.slot2_formatted = data.first_available ? 'First Available' : (data.preferred_slots?.slot2 ? `${data.preferred_slots.slot2.date} at ${data.preferred_slots.slot2.time}` : '');
+    data.slot1_formatted = data.first_available ? '' : (data.preferred_slots?.slot1 ? `${data.preferred_slots.slot1.date} at ${data.preferred_slots.slot1.time}` : '');
+    data.slot2_formatted = data.first_available ? '' : (data.preferred_slots?.slot2 ? `${data.preferred_slots.slot2.date} at ${data.preferred_slots.slot2.time}` : '');
     data.bedrooms = data.property?.beds_entered || null;
     data.bathrooms = data.property?.baths_entered || null;
     data.sqft = data.property?.sqft_entered || null;
@@ -94,8 +94,12 @@ module.exports = async function handler(req, res) {
     summaryLines.push(`<b>Total Due Today: $${data.quote_total}</b>`);
     summaryLines.push('');
     summaryLines.push('<b>Preferred Times:</b>');
-    summaryLines.push(`  1. ${data.slot1_formatted}`);
-    summaryLines.push(`  2. ${data.slot2_formatted}`);
+    if (data.first_available) {
+        summaryLines.push('  ⚡ First Available');
+    } else {
+        summaryLines.push(`  1. ${data.slot1_formatted}`);
+        summaryLines.push(`  2. ${data.slot2_formatted}`);
+    }
     if (data.custom_notes) {
         summaryLines.push('');
         summaryLines.push(`<b>Notes:</b> ${data.custom_notes}`);
