@@ -62,28 +62,28 @@ const state = {
     state.offer = offer;
 
     if (offer) {
-        // Track offer source in attribution
         state.attribution.offer = offer.name;
 
-        // Render the offer hero
-        const hero = document.getElementById('offerHero');
-        if (hero) {
-            document.getElementById('offerHeadline').textContent = offer.headline;
-            document.getElementById('offerTagline').textContent = offer.tagline;
+        // 1. Announcement bar at top of page
+        const promoBar = document.getElementById('promoBar');
+        const promoBarText = document.getElementById('promoBarText');
+        if (promoBar && promoBarText) {
+            const freeItems = (offer.freeAddons || []).join(' + Free ');
+            promoBarText.innerHTML = `Offer Unlocked · Free ${freeItems} <span class="promo-bar-urgency">— Spots limited, lock in your rate today</span>`;
+            promoBar.style.display = 'block';
+        }
 
-            let perksHTML = '';
-            if (offer.freeAddons && offer.freeAddons.length) {
-                offer.freeAddons.forEach(name => {
-                    perksHTML += `<div class="offer-perk-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg> Free ${name}</div>`;
-                });
-            }
-            if (offer.partnerPerk) {
-                perksHTML += `<div class="offer-perk-tag offer-perk-partner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> ${offer.partnerPerk.text}</div>`;
-            }
-            document.getElementById('offerPerks').innerHTML = perksHTML;
-            document.getElementById('offerUrgency').textContent = offer.urgencyNote || '';
+        // 2. Swap hero badge
+        const badge = document.getElementById('heroBadge');
+        if (badge) {
+            badge.textContent = offer.name + ' Special';
+            badge.classList.add('hero-badge-promo');
+        }
 
-            hero.style.display = 'flex';
+        // 3. Update subtitle with perk details
+        const heroSub = document.querySelector('.hero-sub');
+        if (heroSub) {
+            heroSub.innerHTML = `Get a personalized quote with <strong>free ${(offer.freeAddons || []).join(' & ')}</strong> included — limited time only.`;
         }
     }
 })();
@@ -489,10 +489,10 @@ function renderPricing() {
         if (e.multiQty) {
             const unitLabel = e.perUnit ? ` ${e.perUnit}` : ' each';
             const priceDisplay = isFree
-                ? `<span class="addon-price-free">FREE</span> <span class="addon-price-original">$${e.price}${unitLabel}</span>`
+                ? `<span class="addon-price-free">1st FREE</span> <span class="addon-price-original">+$${e.price}${unitLabel} additional</span>`
                 : `$${e.price}${unitLabel}`;
             addonsHTML += `
-                <div class="addon-item has-qty${isFree ? ' addon-free' : ''}" data-service-id="${addonId}" data-service-name="${e.name}" data-service-price="${isFree ? 0 : e.price}">
+                <div class="addon-item has-qty${isFree ? ' addon-free addon-free-prompt' : ''}" data-service-id="${addonId}" data-service-name="${e.name}" data-service-price="${e.price}"${isFree ? ' data-first-free="true"' : ''}>
                     <span class="addon-name">${e.name}${isFree ? ' <span class="addon-included-tag">INCLUDED</span>' : ''}</span>
                     <span class="addon-price">${priceDisplay}</span>
                     <div class="addon-qty">
@@ -500,7 +500,8 @@ function renderPricing() {
                         <span class="addon-qty-count" id="qty-${addonId}">0</span>
                         <button type="button" class="addon-qty-btn" data-dir="1" data-addon-id="${addonId}">+</button>
                     </div>
-                </div>`;
+                </div>
+                ${isFree ? `<div class="addon-free-claim" data-claim-for="${addonId}">👆 Tap <strong>+</strong> to claim your free ${e.name.toLowerCase()}</div>` : ''}`;
         } else {
             const priceDisplay = isFree
                 ? `<span class="addon-price-free">FREE</span> <span class="addon-price-original">$${e.price}</span>`
@@ -709,17 +710,28 @@ function adjustQty(addonId, dir) {
 
     const name = card.dataset.serviceName;
     const unitPrice = parseFloat(card.dataset.servicePrice);
+    const isFirstFree = card.dataset.firstFree === 'true';
 
     // Remove old entry
     state.selectedServices = state.selectedServices.filter(s => s.id !== addonId);
     card.classList.remove('selected');
 
+    // Hide the claim prompt once they've added
+    const claimEl = document.querySelector(`[data-claim-for="${addonId}"]`);
+    if (claimEl) claimEl.style.display = current > 0 ? 'none' : 'block';
+
+    // Remove the pulsing prompt class
+    if (current > 0) card.classList.remove('addon-free-prompt');
+    else if (isFirstFree) card.classList.add('addon-free-prompt');
+
     // Add with quantity if > 0
     if (current > 0) {
-        const totalPrice = unitPrice * current;
+        // First-unit-free: qty 1 = $0, qty 2+ = (qty-1) * unitPrice
+        const totalPrice = isFirstFree ? Math.max(0, (current - 1) * unitPrice) : unitPrice * current;
+        const displayName = current > 1 ? `${name} ×${current}` : name;
         state.selectedServices.push({
             id: addonId,
-            name: current > 1 ? `${name} ×${current}` : name,
+            name: displayName,
             price: totalPrice.toString(),
             qty: current,
             unitPrice
@@ -738,10 +750,18 @@ function updateSelectionUI() {
     const todayCount = todayServices.length;
     const hasAnything = state.selectedServices.length > 0;
 
-    btn.disabled = !hasAnything;
+    // A primary service (Deep Clean, Move In/Out, or Custom Quote) is required to proceed
+    const PRIMARY_IDS = ['deepClean', 'moveInOut', 'customQuote'];
+    const hasPrimary = state.selectedServices.some(s => PRIMARY_IDS.includes(s.id));
+
+    btn.disabled = !hasPrimary;
 
     if (!hasAnything) {
         hint.textContent = "Tap the services above to select what you'd like to book";
+    } else if (!hasPrimary && recurringPlan) {
+        hint.textContent = "Please select a Deep Clean or Move In/Out service first — your first visit always starts with a thorough baseline clean";
+    } else if (!hasPrimary) {
+        hint.textContent = "Please select a Deep Clean, Move In/Out, or Custom Quote to continue — add-ons are included with your primary service";
     } else if (todayCount === 0 && recurringPlan) {
         hint.textContent = "Recurring plan selected — add a deep clean to book your first visit";
     } else if (todayCount > 0 && recurringPlan) {
