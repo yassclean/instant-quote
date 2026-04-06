@@ -111,7 +111,7 @@ module.exports = async function handler(req, res) {
     }
     data.quote_summary = summaryLines.join('<br>');
 
-    const webhookUrl = process.env.GHL_WEBHOOK_URL || process.env.MAKECOM_WEBHOOK_URL;
+    const webhookUrl = process.env.GHL_WEBHOOK_URL;
 
     if (!webhookUrl || webhookUrl === 'your-webhook-url-here') {
         console.warn('GHL_WEBHOOK_URL not configured — logging booking data only');

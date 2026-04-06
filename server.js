@@ -139,7 +139,7 @@ app.post('/api/book', async (req, res) => {
     data.landing_page = data.attribution?.landing_page || '';
     data.referrer = data.attribution?.referrer || '';
 
-    const webhookUrl = process.env.MAKECOM_WEBHOOK_URL;
+    const webhookUrl = process.env.GHL_WEBHOOK_URL;
 
     if (webhookUrl && webhookUrl !== 'your-webhook-url-here') {
         try {
@@ -148,12 +148,12 @@ app.post('/api/book', async (req, res) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            console.log('  Make.com webhook:', response.ok ? 'OK' : `Error ${response.status}`);
+            console.log('  GHL webhook:', response.ok ? 'OK' : `Error ${response.status}`);
         } catch (err) {
             console.warn('  Webhook error:', err.message);
         }
     } else {
-        console.log('  ⚠ MAKECOM_WEBHOOK_URL not configured — data logged only');
+        console.log('  ⚠ GHL_WEBHOOK_URL not configured — data logged only');
     }
 
     res.json({ success: true, message: 'Booking received' });
