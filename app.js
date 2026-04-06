@@ -64,6 +64,12 @@ const state = {
     if (offer) {
         state.attribution.offer = offer.name;
 
+        // Prevent search engines from indexing offer/promo pages
+        const noindex = document.createElement('meta');
+        noindex.name = 'robots';
+        noindex.content = 'noindex, nofollow';
+        document.head.appendChild(noindex);
+
         // 1. Announcement bar at top of page
         const promoBar = document.getElementById('promoBar');
         const promoBarText = document.getElementById('promoBarText');
@@ -117,16 +123,44 @@ function initAutocomplete() {
             state.address = place.formatted_address;
             state.addressConfirmed = true;
 
-            // Service area check — 25 mile radius from Lake Hopatcong
+            // Service area check — 25 mile radius from Lake Hopatcong + whitelisted zips
             const SERVICE_CENTER = { lat: 40.9631, lng: -74.6107 };
             const MAX_MILES = 25;
+
+            // Additional zip codes approved beyond the 25-mile radius
+            const EXTRA_ZIPS = new Set([
+                // Essex County
+                '07042', '07043', // Montclair
+                '07052',          // West Orange
+                '07039',          // Livingston
+                '07003',          // Bloomfield
+                '07040',          // Maplewood
+                '07079',          // South Orange
+                '07044',          // Verona
+                '07006', '07007', // Caldwell
+                '07004',          // Fairfield
+                // Passaic County
+                '07424',          // Little Falls
+                '07512',          // Totowa
+                '07465',          // Wanaque
+                '07403',          // Bloomingdale
+                // Warren County
+                '07844',          // Hope
+                '07820',          // Allamuchy
+            ]);
+
+            // Extract postal code from address components
+            const postalComponent = (place.address_components || []).find(
+                c => c.types.includes('postal_code')
+            );
+            const postalCode = postalComponent ? postalComponent.short_name : '';
 
             if (place.geometry && place.geometry.location) {
                 const lat = place.geometry.location.lat();
                 const lng = place.geometry.location.lng();
                 const distance = haversineDistance(SERVICE_CENTER.lat, SERVICE_CENTER.lng, lat, lng);
 
-                if (distance > MAX_MILES) {
+                if (distance > MAX_MILES && !EXTRA_ZIPS.has(postalCode)) {
                     state.addressConfirmed = false;
                     $('getQuoteBtn').disabled = true;
                     showAreaMessage(`We currently serve within ${MAX_MILES} miles of Lake Hopatcong, NJ. Your address is about ${Math.round(distance)} miles away — but give us a call, we may still be able to help!`, true);

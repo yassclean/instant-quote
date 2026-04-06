@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /offer
 
 Sitemap: https://quote.yassclean.com/sitemap.xml
