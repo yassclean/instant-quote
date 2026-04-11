@@ -55,6 +55,62 @@ const state = {
 })();
 
 // ==================== OFFER DETECTION ====================
+// ==================== ANALYTICS TRACKING ====================
+const analytics = {
+    sessionId: 'sess_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36),
+    stepTimestamps: {},
+    queue: [],
+    flushTimer: null,
+
+    track(eventType, data = {}) {
+        const event = {
+            event_type: 'funnel_' + eventType,
+            session_id: this.sessionId,
+            timestamp: new Date().toISOString(),
+            step: state.currentStep,
+            data: data,
+            device: /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+            viewport: window.innerWidth + 'x' + window.innerHeight,
+            utm_source: state.attribution?.utm_source || '',
+            utm_campaign: state.attribution?.utm_campaign || '',
+            landing_page: state.attribution?.landing_page || '',
+            referrer: state.attribution?.referrer || ''
+        };
+        if (this.stepTimestamps[state.currentStep]) {
+            event.time_on_step_ms = Date.now() - this.stepTimestamps[state.currentStep];
+        }
+        this.queue.push(event);
+        clearTimeout(this.flushTimer);
+        this.flushTimer = setTimeout(() => this.flush(), 1000);
+    },
+
+    flush() {
+        if (this.queue.length === 0) return;
+        const events = this.queue.splice(0);
+        const url = '/api/track';
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(url, JSON.stringify(events));
+        } else {
+            fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(events), keepalive: true }).catch(() => {});
+        }
+    },
+
+    markStep(step) {
+        this.stepTimestamps[step] = Date.now();
+    }
+};
+
+analytics.markStep(1);
+analytics.track('page_load', { url: window.location.href, path: window.location.pathname, has_offer: !!window.location.pathname.match(/\/offer/) });
+
+window.addEventListener('beforeunload', () => {
+    if (state.currentStep < 4 || !document.getElementById('bookingConfirmation')?.style.display) {
+        analytics.track('drop_off', { last_step: state.currentStep, address_entered: !!state.address, services_selected: state.selectedServices.length });
+        analytics.flush();
+    }
+});
+
+// ==================== OFFER DETECTION ====================
 (function detectOffer() {
     const path = window.location.pathname;
     const offers = CONFIG.offers || {};
@@ -164,12 +220,14 @@ function initAutocomplete() {
                     state.addressConfirmed = false;
                     $('getQuoteBtn').disabled = true;
                     showAreaMessage(`We currently serve within ${MAX_MILES} miles of Lake Hopatcong, NJ. Your address is about ${Math.round(distance)} miles away — but give us a call, we may still be able to help!`, true);
+                    analytics.track('address_rejected', { address: place.formatted_address, distance: Math.round(distance), zip: postalCode });
                     return;
                 }
                 hideAreaMessage();
             }
 
             $('getQuoteBtn').disabled = false;
+            analytics.track('address_entered', { address: place.formatted_address, zip: postalCode });
         }
     });
 
@@ -236,6 +294,13 @@ function goToStep(n) {
     });
 
     state.currentStep = n;
+    analytics.markStep(n);
+    analytics.track('step_' + n, {
+        from_step: state.currentStep !== n ? state.currentStep : undefined,
+        address: state.address || undefined,
+        beds: state.beds || undefined,
+        baths: state.baths || undefined
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // Fire Meta Pixel events for funnel step tracking
@@ -982,8 +1047,18 @@ async function submitBooking() {
         console.log('Booking response:', result);
     } catch (err) {
         console.warn('Booking submission error:', err);
+        analytics.track('booking_error', { error: err.message });
         // Continue to confirmation anyway — graceful degradation
     }
+
+    analytics.track('booking_submitted', {
+        services: todayServices.map(s => s.name),
+        total: totalDueToday,
+        recurring: recurringPlan ? recurringPlan.name : 'none',
+        source: bookingData.source,
+        address: state.address
+    });
+    analytics.flush();
 
     // Fire Meta Pixel Lead event
     if (typeof fbq === 'function') {

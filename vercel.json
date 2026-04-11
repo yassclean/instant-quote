@@ -5,6 +5,9 @@
         },
         "api/book.js": {
             "maxDuration": 10
+        },
+        "api/track.js": {
+            "maxDuration": 5
         }
     },
     "rewrites": [

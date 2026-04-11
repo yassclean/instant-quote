@@ -1,6 +1,20 @@
 // Vercel serverless function for property lookup
 // Priority: Cache → Perplexity (cheap) → Rentcast (expensive, gap-filler only)
 
+// ==================== EVENT LOGGING ====================
+async function logEvent(eventData) {
+    const eventUrl = process.env.EVENT_WEBHOOK_URL;
+    if (!eventUrl) return;
+    try {
+        await fetch(eventUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventData)
+        });
+    } catch (err) {
+        console.error('Event logging failed:', err.message);
+    }
+}
 // ==================== ADDRESS CACHE ====================
 // Persists across warm invocations on Vercel; resets on cold start
 const addressCache = new Map();
@@ -44,11 +58,30 @@ module.exports = async function handler(req, res) {
     if (!address) return res.status(400).json({ error: 'Address required' });
 
     console.log(`\n  Looking up: ${address}`);
+    const lookupStart = Date.now();
+    const clientIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
 
     // Check cache first
     const cached = getCached(address);
     if (cached) {
         console.log('  ✓ Cache hit');
+        // Log cache hit
+        logEvent({
+            event_type: 'lookup',
+            timestamp: new Date().toISOString(),
+            address: address,
+            beds: cached.beds,
+            baths: cached.baths,
+            sqft: cached.sqft,
+            source: cached.source,
+            confidence: cached.confidence,
+            api_used: 'cache',
+            response_ms: Date.now() - lookupStart,
+            cache_hit: true,
+            ip: clientIP,
+            user_agent: userAgent
+        });
         return res.json(cached);
     }
 
@@ -58,9 +91,41 @@ module.exports = async function handler(req, res) {
     try {
         const result = await lookupProperty(address, perplexityKey, rentcastKey);
         setCache(address, result);
+
+        // Log successful lookup
+        logEvent({
+            event_type: 'lookup',
+            timestamp: new Date().toISOString(),
+            address: address,
+            beds: result.beds,
+            baths: result.baths,
+            sqft: result.sqft,
+            source: result.source,
+            confidence: result.confidence,
+            api_used: result.source || 'unknown',
+            response_ms: Date.now() - lookupStart,
+            cache_hit: false,
+            ip: clientIP,
+            user_agent: userAgent
+        });
+
         res.json(result);
     } catch (err) {
         console.error('Lookup error:', err);
+
+        // Log failed lookup
+        logEvent({
+            event_type: 'error',
+            timestamp: new Date().toISOString(),
+            error_type: 'lookup_failed',
+            severity: 'warning',
+            message: `Property lookup failed for: ${address}`,
+            details: { error: err.message, address: address },
+            endpoint: '/api/lookup',
+            ip: clientIP,
+            user_agent: userAgent
+        });
+
         res.status(500).json({ error: 'Lookup failed' });
     }
 }

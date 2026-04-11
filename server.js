@@ -100,6 +100,42 @@ async function sendAlert(alertType, severity, message, details = {}) {
     }
 }
 
+// ==================== EVENT LOGGING HELPER ====================
+async function logEvent(eventData) {
+    const eventUrl = process.env.EVENT_WEBHOOK_URL;
+    if (!eventUrl) return;
+    try {
+        await fetch(eventUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventData)
+        });
+    } catch (err) {
+        console.error('Event logging failed:', err.message);
+    }
+}
+
+// ==================== TRACKING ENDPOINT ====================
+app.post('/api/track', async (req, res) => {
+    const events = Array.isArray(req.body) ? req.body : [req.body];
+    if (!events.length || !events[0]?.event_type) {
+        return res.status(400).json({ error: 'event_type is required' });
+    }
+
+    const clientIP = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    for (const event of events) {
+        event.ip = clientIP;
+        event.user_agent = userAgent;
+        event.server_timestamp = new Date().toISOString();
+        logEvent(event);
+    }
+
+    console.log(`  📊 Tracked ${events.length} event(s): ${events.map(e => e.event_type).join(', ')}`);
+    res.json({ success: true, logged: events.length });
+});
+
 // ==================== BOOKING ENDPOINT ====================
 app.post('/api/book', async (req, res) => {
     const data = req.body;
