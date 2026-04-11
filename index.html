@@ -354,9 +354,9 @@
                     <div class="property-summary" id="propertySummary"></div>
                 </div>
 
-                <!-- ===== SERVICE TYPE SELECTOR ===== -->
                 <div class="service-type-selector" id="serviceTypeSelector">
-                    <p class="service-type-prompt">What are you looking for?</p>
+                    <p class="service-type-prompt">Choose your service type</p>
+                    <p class="service-type-sub">Select one to see your personalized pricing</p>
                     <div class="service-type-grid">
                         <button class="service-type-card" data-service-type="deepClean">
                             <span class="service-type-icon">
@@ -397,24 +397,6 @@
                     <h3 class="subsection-title">Customize Your Clean</h3>
                     <p class="subsection-sub">Enhance your deep clean with premium add-ons.</p>
                     <div id="addOnsGrid" class="addons-grid"></div>
-
-                    <!-- Maintenance Plans -->
-                    <h3 class="subsection-title">Maintenance Plans</h3>
-                    <p class="subsection-sub">Save with recurring cleanings — same dedicated team every visit.</p>
-                    <div class="plan-info-banner">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        <span>A recurring plan is <strong>completely optional</strong>. Most customers choose one after their first deep clean. Selecting one here won't add to today's total — we'll set you up after your first visit.</span>
-                    </div>
-                    <div id="maintenanceCards" class="pricing-grid"></div>
-
-                    <!-- Carpet Cleaning -->
-                    <h3 class="subsection-title">Carpet Cleaning</h3>
-                    <p class="subsection-sub">Professional hot-water extraction for a deeper clean.</p>
-                    <div class="plan-info-banner">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        <span>Carpet cleaning can be added when you book. Here's a look at our pricing tiers so you know what to expect.</span>
-                    </div>
-                    <div id="carpetCards" class="pricing-grid carpet-grid"></div>
                 </div>
 
                 <!-- ===== MOVE IN/OUT SECTION ===== -->
@@ -425,15 +407,6 @@
                     <h3 class="subsection-title">Customize Your Clean</h3>
                     <p class="subsection-sub">Enhance your move-in/out clean with premium add-ons.</p>
                     <div id="addOnsGridMove" class="addons-grid"></div>
-
-                    <!-- Carpet Cleaning -->
-                    <h3 class="subsection-title">Carpet Cleaning</h3>
-                    <p class="subsection-sub">Professional hot-water extraction for a deeper clean.</p>
-                    <div class="plan-info-banner">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        <span>Carpet cleaning can be added when you book. Here's a look at our pricing tiers so you know what to expect.</span>
-                    </div>
-                    <div id="carpetCardsMove" class="pricing-grid carpet-grid"></div>
                 </div>
 
                 <!-- ===== CUSTOM QUOTE SECTION ===== -->
@@ -450,9 +423,9 @@
                     </div>
                 </div>
 
-                <!-- CTA — Continue to booking -->
+                <!-- CTA — Continue to booking (NOW positioned above optional sections) -->
                 <div class="cta-section" id="ctaSection" style="display:none">
-                    <p class="cta-hint" id="selectionHint">Tap the services above to select what you'd like to book</p>
+                    <p class="cta-hint" id="selectionHint">Choose a service type above to see your pricing</p>
                     <button id="continueToBookBtn" class="btn-primary btn-large" disabled>
                         Continue to Book
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-arrow">
@@ -462,6 +435,76 @@
                     <p class="cta-note">Select at least one service to continue</p>
                 </div>
 
+                <!-- ===== OPTIONAL: MAINTENANCE PLANS (collapsible) ===== -->
+                <div id="optionalMaintenance" class="optional-section" style="display:none">
+                    <button class="collapsible-toggle" data-collapse-target="maintenanceCollapsible">
+                        <span class="collapsible-toggle-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 8v8M8 12h8"/><circle cx="12" cy="12" r="10"/></svg>
+                        </span>
+                        <span>View Maintenance Plans</span>
+                        <span class="collapsible-badge">Optional</span>
+                        <span class="collapsible-arrow">▾</span>
+                    </button>
+                    <div id="maintenanceCollapsible" class="collapsible-content collapsed">
+                        <div class="plan-info-banner">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            <span>A recurring plan is <strong>completely optional</strong>. Most customers choose one after their first deep clean. Selecting one here won’t add to today’s total — we’ll set you up after your first visit.</span>
+                        </div>
+                        <div id="maintenanceCards" class="pricing-grid"></div>
+                    </div>
+                </div>
+
+                <!-- ===== OPTIONAL: CARPET CLEANING (collapsible) ===== -->
+                <div id="optionalCarpet" class="optional-section" style="display:none">
+                    <button class="collapsible-toggle" data-collapse-target="carpetCollapsible">
+                        <span class="collapsible-toggle-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 8v8M8 12h8"/><circle cx="12" cy="12" r="10"/></svg>
+                        </span>
+                        <span>View Carpet Cleaning Pricing</span>
+                        <span class="collapsible-badge">Info Only</span>
+                        <span class="collapsible-arrow">▾</span>
+                    </button>
+                    <div id="carpetCollapsible" class="collapsible-content collapsed">
+                        <div class="plan-info-banner">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            <span>Carpet cleaning can be added when you book. Here’s a look at our pricing tiers so you know what to expect.</span>
+                        </div>
+                        <div id="carpetCards" class="pricing-grid carpet-grid"></div>
+                    </div>
+                </div>
+
+                <!-- Carpet cards for Move In/Out (hidden container, populated by JS) -->
+                <div id="carpetCardsMoveWrapper" class="optional-section" style="display:none">
+                    <button class="collapsible-toggle" data-collapse-target="carpetCollapsibleMove">
+                        <span class="collapsible-toggle-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 8v8M8 12h8"/><circle cx="12" cy="12" r="10"/></svg>
+                        </span>
+                        <span>View Carpet Cleaning Pricing</span>
+                        <span class="collapsible-badge">Info Only</span>
+                        <span class="collapsible-arrow">▾</span>
+                    </button>
+                    <div id="carpetCollapsibleMove" class="collapsible-content collapsed">
+                        <div class="plan-info-banner">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            <span>Carpet cleaning can be added when you book. Here’s a look at our pricing tiers so you know what to expect.</span>
+                        </div>
+                        <div id="carpetCardsMove" class="pricing-grid carpet-grid"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Sticky CTA Bar (fixed to bottom, shown when scrolled past original CTA) -->
+            <div id="stickyCtaBar" class="sticky-cta-bar">
+                <div class="sticky-cta-inner">
+                    <span class="sticky-cta-summary"></span>
+                    <button class="sticky-cta-btn btn-primary" disabled>
+                        Continue to Book
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-arrow">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </section>
 

@@ -737,13 +737,24 @@ function selectServiceType(type) {
         el.style.display = key === type ? 'block' : 'none';
     });
 
+    // Show/hide optional sections based on service type
+    $('optionalMaintenance').style.display = type === 'deepClean' ? 'block' : 'none';
+    $('optionalCarpet').style.display = type === 'deepClean' ? 'block' : 'none';
+    $('carpetCardsMoveWrapper').style.display = type === 'moveInOut' ? 'block' : 'none';
+
     // Show the CTA section
     $('ctaSection').style.display = 'flex';
 
-    // For custom quote, auto-select the card
-    if (type === 'customQuote') {
+    // AUTO-SELECT the primary service card to eliminate the double-click problem
+    if (type === 'deepClean') {
+        const card = $('deepCleanCard');
+        if (card && !card.classList.contains('selected')) toggleServiceSelection(card);
+    } else if (type === 'moveInOut') {
+        const card = $('moveInOutCard');
+        if (card && !card.classList.contains('selected')) toggleServiceSelection(card);
+    } else if (type === 'customQuote') {
         const customCard = $('customQuoteCard');
-        toggleServiceSelection(customCard);
+        if (customCard && !customCard.classList.contains('selected')) toggleServiceSelection(customCard);
     }
 
     // Scroll to the revealed content
@@ -858,22 +869,80 @@ function updateSelectionUI() {
     // A primary service (Deep Clean, Move In/Out, or Custom Quote) is required to proceed
     const PRIMARY_IDS = ['deepClean', 'moveInOut', 'customQuote'];
     const hasPrimary = state.selectedServices.some(s => PRIMARY_IDS.includes(s.id));
+    const primaryService = state.selectedServices.find(s => PRIMARY_IDS.includes(s.id));
 
     btn.disabled = !hasPrimary;
 
+    // Calculate running total for display
+    const total = todayServices.reduce((sum, s) => {
+        const p = parseFloat(s.price);
+        return sum + (isNaN(p) ? 0 : p);
+    }, 0);
+    const hasCustomPrice = todayServices.some(s => s.price === 'Custom');
+
     if (!hasAnything) {
-        hint.textContent = "Tap the services above to select what you'd like to book";
+        hint.innerHTML = "Choose a service type above to see your pricing";
+    } else if (hasPrimary && todayCount > 0) {
+        const priceStr = hasCustomPrice ? 'Custom quote' : `$${total.toFixed(2)}`;
+        const addonsCount = todayCount - 1; // subtract primary
+        const addonText = addonsCount > 0 ? ` + ${addonsCount} add-on${addonsCount > 1 ? 's' : ''}` : '';
+        const recurText = recurringPlan ? ' + recurring plan' : '';
+        hint.innerHTML = `<span class="hint-check">✓</span> ${primaryService.name}${addonText}${recurText} — <strong>${priceStr}</strong>`;
     } else if (!hasPrimary && recurringPlan) {
-        hint.textContent = "Please select a Deep Clean or Move In/Out service first — your first visit always starts with a thorough baseline clean";
-    } else if (!hasPrimary) {
-        hint.textContent = "Please select a Deep Clean, Move In/Out, or Custom Quote to continue — add-ons are included with your primary service";
-    } else if (todayCount === 0 && recurringPlan) {
-        hint.textContent = "Recurring plan selected — add a deep clean to book your first visit";
-    } else if (todayCount > 0 && recurringPlan) {
-        hint.textContent = `${todayCount} service${todayCount > 1 ? 's' : ''} selected + recurring plan for after`;
+        hint.innerHTML = "Please select a Deep Clean or Move In/Out service first";
     } else {
-        hint.textContent = `${todayCount} service${todayCount > 1 ? 's' : ''} selected`;
+        hint.innerHTML = "Select a service to continue";
     }
+
+    // Update sticky CTA bar if present
+    updateStickyCtaBar(hasPrimary, primaryService, total, hasCustomPrice);
+}
+
+// ==================== STICKY CTA BAR ====================
+function updateStickyCtaBar(hasPrimary, primaryService, total, hasCustomPrice) {
+    const stickyBar = $('stickyCtaBar');
+    if (!stickyBar) return;
+
+    if (hasPrimary && state.currentStep === 3) {
+        const priceStr = hasCustomPrice ? 'Custom' : `$${total.toFixed(2)}`;
+        const summaryEl = stickyBar.querySelector('.sticky-cta-summary');
+        const btnEl = stickyBar.querySelector('.sticky-cta-btn');
+        if (summaryEl) summaryEl.innerHTML = `<span class="sticky-cta-check">✓</span> ${primaryService.name} · <strong>${priceStr}</strong>`;
+        if (btnEl) btnEl.disabled = false;
+        // Visibility is controlled by IntersectionObserver
+    } else {
+        stickyBar.classList.remove('visible');
+    }
+}
+
+function initStickyCtaObserver() {
+    const ctaSection = $('ctaSection');
+    const stickyBar = $('stickyCtaBar');
+    if (!ctaSection || !stickyBar) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const PRIMARY_IDS = ['deepClean', 'moveInOut', 'customQuote'];
+            const hasPrimary = state.selectedServices.some(s => PRIMARY_IDS.includes(s.id));
+            // Show sticky bar when CTA section is NOT visible and we have a primary service
+            if (!entry.isIntersecting && hasPrimary && state.currentStep === 3) {
+                stickyBar.classList.add('visible');
+            } else {
+                stickyBar.classList.remove('visible');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    observer.observe(ctaSection);
+}
+
+// ==================== COLLAPSIBLE SECTIONS ====================
+function toggleCollapsible(sectionId) {
+    const content = document.getElementById(sectionId);
+    const toggle = content?.previousElementSibling;
+    if (!content) return;
+    content.classList.toggle('collapsed');
+    if (toggle) toggle.classList.toggle('open');
 }
 
 // ==================== BOOKING SUMMARY & SUBMISSION ====================
@@ -1128,11 +1197,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Step 3 → Step 2
     $('backToStep2').addEventListener('click', () => goToStep(2));
 
-    // Step 3 → Step 4
-    $('continueToBookBtn').addEventListener('click', () => {
+    // Step 3 → Step 4 (both original and sticky CTA)
+    const goToStep4 = () => {
         renderBookingSummary();
         goToStep(4);
         state.step4Timestamp = Date.now();
+        // Hide sticky bar on step change
+        const stickyBar = $('stickyCtaBar');
+        if (stickyBar) stickyBar.classList.remove('visible');
         // Show/hide custom notes based on whether custom quote is selected
         const isCustom = state.selectedServices.some(s => s.id === 'customQuote');
         $('customQuoteNotes').style.display = isCustom ? 'block' : 'none';
@@ -1141,6 +1213,21 @@ document.addEventListener('DOMContentLoaded', () => {
             $('firstAvailable').checked = true;
             toggleFirstAvailable();
         }
+    };
+    $('continueToBookBtn').addEventListener('click', goToStep4);
+    // Sticky CTA button
+    const stickyBtn = document.querySelector('.sticky-cta-btn');
+    if (stickyBtn) stickyBtn.addEventListener('click', goToStep4);
+
+    // Initialize sticky CTA observer
+    initStickyCtaObserver();
+
+    // Collapsible section toggles
+    document.querySelectorAll('.collapsible-toggle').forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const targetId = toggle.dataset.collapseTarget;
+            if (targetId) toggleCollapsible(targetId);
+        });
     });
 
     // Step 4 → Step 3
