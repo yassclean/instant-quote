@@ -1,6 +1,29 @@
 // Vercel serverless function — receives booking data, forwards to GHL webhook
 // Endpoint: POST /api/book
 
+// ==================== ALERT HELPER ====================
+async function sendAlert(alertType, severity, message, details = {}) {
+    const alertUrl = process.env.ALERT_WEBHOOK_URL;
+    if (!alertUrl) return; // Silently skip if not configured
+
+    try {
+        await fetch(alertUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                alert_type: alertType,
+                severity: severity,
+                message: message,
+                details: details,
+                timestamp: new Date().toISOString()
+            })
+        });
+    } catch (err) {
+        // Alert system itself failed — log but don't block
+        console.error('Alert delivery failed:', err.message);
+    }
+}
+
 module.exports = async function handler(req, res) {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,6 +37,10 @@ module.exports = async function handler(req, res) {
     if (!data || !data.phone) {
         return res.status(400).json({ error: 'Booking data with phone is required' });
     }
+
+    // Capture IP and user agent for logging
+    const clientIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
 
     // ==================== BOT PROTECTION ====================
     // 1. Honeypot — real users never fill this hidden field
@@ -30,7 +57,6 @@ module.exports = async function handler(req, res) {
     }
 
     // 3. Rate limiting per IP (max 5 bookings/hour)
-    const clientIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || 'unknown';
     const now = Date.now();
     if (!global._bookingRateMap) global._bookingRateMap = new Map();
     const rateData = global._bookingRateMap.get(clientIP) || { count: 0, resetAt: now + 3600000 };
@@ -76,6 +102,13 @@ module.exports = async function handler(req, res) {
     data.custom_notes = data.custom_notes || '';
     data.booking_source = data.source || 'instant-quote';
 
+    // Enrich with server-side metadata
+    data._meta = {
+        ip: clientIP,
+        user_agent: userAgent,
+        received_at: new Date().toISOString()
+    };
+
     // Build formatted quote summary for email notifications
     let summaryLines = [];
     summaryLines.push(`<b>Property:</b> ${data.address}`);
@@ -113,12 +146,30 @@ module.exports = async function handler(req, res) {
 
     const webhookUrl = process.env.GHL_WEBHOOK_URL;
 
+    // ==================== WEBHOOK MISSING — CRITICAL ALERT ====================
     if (!webhookUrl || webhookUrl === 'your-webhook-url-here') {
-        console.warn('GHL_WEBHOOK_URL not configured — logging booking data only');
+        console.error('CRITICAL: GHL_WEBHOOK_URL not configured — booking LOST');
         console.log('Booking data:', JSON.stringify(data, null, 2));
+
+        await sendAlert(
+            'Webhook Not Configured',
+            '🔴 CRITICAL',
+            `GHL_WEBHOOK_URL is missing or not set. A booking from *${data.name}* (${data.phone}) was NOT forwarded to GHL. The booking data has been logged but needs manual processing.`,
+            {
+                customer: data.name,
+                phone: data.phone,
+                email: data.email,
+                address: data.address,
+                services: data.services_list,
+                total: data.quote_total,
+                ip: clientIP
+            }
+        );
+
         return res.json({ success: true, message: 'Booking received (webhook not configured)' });
     }
 
+    // ==================== FORWARD TO GHL ====================
     try {
         console.log(`\n  Forwarding booking to GHL for: ${data.name} (${data.phone})`);
 
@@ -131,16 +182,73 @@ module.exports = async function handler(req, res) {
         if (!response.ok) {
             const errText = await response.text();
             console.error('  GHL webhook error:', response.status, errText);
+
+            // ==================== WEBHOOK ERROR — ALERT ====================
+            await sendAlert(
+                'GHL Webhook Failed',
+                '🔴 CRITICAL',
+                `GHL webhook returned HTTP ${response.status}. Booking from *${data.name}* (${data.phone}) may not have been received by GHL.`,
+                {
+                    customer: data.name,
+                    phone: data.phone,
+                    email: data.email,
+                    address: data.address,
+                    services: data.services_list,
+                    total: data.quote_total,
+                    http_status: response.status,
+                    error_body: errText?.substring(0, 500),
+                    ip: clientIP
+                }
+            );
+
             // Still return success to the user — we don't want their experience to break
-            // if the webhook has a temporary issue
             return res.json({ success: true, message: 'Booking received' });
         }
 
         console.log('  GHL webhook: OK');
+
+        // ==================== SUCCESS — NOTIFY (optional) ====================
+        // Send a success notification so you see every booking come through
+        await sendAlert(
+            'New Booking Received',
+            '✅ INFO',
+            `Booking from *${data.name}* (${data.phone}) successfully forwarded to GHL.`,
+            {
+                customer: data.name,
+                phone: data.phone,
+                email: data.email,
+                address: data.address,
+                services: data.services_list,
+                recurring: data.recurring_plan,
+                total: `$${data.quote_total}`,
+                source: data.booking_source,
+                utm_source: data.utm_source || 'direct',
+                ip: clientIP
+            }
+        );
+
         return res.json({ success: true, message: 'Booking received' });
 
     } catch (err) {
         console.error('  Webhook error:', err.message);
+
+        // ==================== NETWORK ERROR — ALERT ====================
+        await sendAlert(
+            'Webhook Network Error',
+            '🔴 CRITICAL',
+            `Could not reach GHL webhook: ${err.message}. Booking from *${data.name}* (${data.phone}) was NOT delivered.`,
+            {
+                customer: data.name,
+                phone: data.phone,
+                email: data.email,
+                address: data.address,
+                services: data.services_list,
+                total: data.quote_total,
+                error: err.message,
+                ip: clientIP
+            }
+        );
+
         // Graceful degradation — booking is still "received" from user's perspective
         return res.json({ success: true, message: 'Booking received' });
     }

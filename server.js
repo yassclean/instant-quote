@@ -82,6 +82,24 @@ app.post('/api/lookup', async (req, res) => {
     }
 });
 
+// ==================== ALERT HELPER ====================
+async function sendAlert(alertType, severity, message, details = {}) {
+    const alertUrl = process.env.ALERT_WEBHOOK_URL;
+    if (!alertUrl) return;
+    try {
+        await fetch(alertUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                alert_type: alertType, severity, message, details,
+                timestamp: new Date().toISOString()
+            })
+        });
+    } catch (err) {
+        console.error('Alert delivery failed:', err.message);
+    }
+}
+
 // ==================== BOOKING ENDPOINT ====================
 app.post('/api/book', async (req, res) => {
     const data = req.body;
@@ -99,7 +117,8 @@ app.post('/api/book', async (req, res) => {
         console.warn('  Bot detected (too fast):', data._ts, 'ms');
         return res.json({ success: true, message: 'Booking received' });
     }
-    const clientIP = req.ip || 'unknown';
+    const clientIP = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
     if (!global._bookingRateMap) global._bookingRateMap = new Map();
     const rateData = global._bookingRateMap.get(clientIP) || { count: 0, resetAt: Date.now() + 3600000 };
     if (Date.now() > rateData.resetAt) { rateData.count = 0; rateData.resetAt = Date.now() + 3600000; }
@@ -139,21 +158,49 @@ app.post('/api/book', async (req, res) => {
     data.landing_page = data.attribution?.landing_page || '';
     data.referrer = data.attribution?.referrer || '';
 
+    // Enrich with server-side metadata
+    data._meta = { ip: clientIP, user_agent: userAgent, received_at: new Date().toISOString() };
+
     const webhookUrl = process.env.GHL_WEBHOOK_URL;
 
-    if (webhookUrl && webhookUrl !== 'your-webhook-url-here') {
-        try {
-            const response = await fetch(webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            console.log('  GHL webhook:', response.ok ? 'OK' : `Error ${response.status}`);
-        } catch (err) {
-            console.warn('  Webhook error:', err.message);
+    if (!webhookUrl || webhookUrl === 'your-webhook-url-here') {
+        console.error('CRITICAL: GHL_WEBHOOK_URL not configured — booking LOST');
+        console.log('Booking data:', JSON.stringify(data, null, 2));
+        await sendAlert('Webhook Not Configured', '🔴 CRITICAL',
+            `GHL_WEBHOOK_URL is missing. Booking from *${data.name}* (${data.phone}) was NOT forwarded.`,
+            { customer: data.name, phone: data.phone, email: data.email, address: data.address, services: data.services_list, total: data.quote_total, ip: clientIP }
+        );
+        return res.json({ success: true, message: 'Booking received (webhook not configured)' });
+    }
+
+    try {
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error('  GHL webhook error:', response.status, errText);
+            await sendAlert('GHL Webhook Failed', '🔴 CRITICAL',
+                `GHL webhook returned HTTP ${response.status}. Booking from *${data.name}* (${data.phone}) may not have been received.`,
+                { customer: data.name, phone: data.phone, http_status: response.status, error_body: errText?.substring(0, 500), ip: clientIP }
+            );
+            return res.json({ success: true, message: 'Booking received' });
         }
-    } else {
-        console.log('  ⚠ GHL_WEBHOOK_URL not configured — data logged only');
+
+        console.log('  GHL webhook: OK');
+        await sendAlert('New Booking Received', '✅ INFO',
+            `Booking from *${data.name}* (${data.phone}) successfully forwarded to GHL.`,
+            { customer: data.name, phone: data.phone, email: data.email, address: data.address, services: data.services_list, recurring: data.recurring_plan, total: `$${data.quote_total}`, source: data.booking_source || 'instant-quote', utm_source: data.utm_source || 'direct', ip: clientIP }
+        );
+    } catch (err) {
+        console.error('  Webhook error:', err.message);
+        await sendAlert('Webhook Network Error', '🔴 CRITICAL',
+            `Could not reach GHL webhook: ${err.message}. Booking from *${data.name}* (${data.phone}) was NOT delivered.`,
+            { customer: data.name, phone: data.phone, email: data.email, error: err.message, ip: clientIP }
+        );
     }
 
     res.json({ success: true, message: 'Booking received' });
