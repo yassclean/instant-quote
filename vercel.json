@@ -18,6 +18,10 @@
         {
             "source": "/offer",
             "destination": "/index.html"
+        },
+        {
+            "source": "/embed",
+            "destination": "/index.html"
         }
     ],
     "headers": [
@@ -35,6 +39,19 @@
                 {
                     "key": "Access-Control-Allow-Headers",
                     "value": "Content-Type"
+                }
+            ]
+        },
+        {
+            "source": "/embed",
+            "headers": [
+                {
+                    "key": "X-Frame-Options",
+                    "value": "ALLOW-FROM https://yassclean.com"
+                },
+                {
+                    "key": "Content-Security-Policy",
+                    "value": "frame-ancestors 'self' https://yassclean.com https://*.yassclean.com"
                 }
             ]
         }

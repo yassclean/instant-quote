@@ -2574,3 +2574,44 @@ input[type="date"].text-input {
         font-size: 0.9rem;
     }
 }
+
+/* ============================================================
+   EMBED MODE — Strips chrome for iframe embedding
+   Applied when body has .embed-mode class (path = /embed)
+   ============================================================ */
+.embed-mode {
+    background: transparent;
+}
+
+.embed-mode .navbar {
+    display: none !important;
+}
+
+.embed-mode .bg-grid,
+.embed-mode .bg-glow {
+    display: none !important;
+}
+
+.embed-mode .main-content {
+    padding-top: 0;
+    min-height: auto;
+}
+
+.embed-mode .step {
+    min-height: auto;
+}
+
+.embed-mode .step-inner {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* Open external links in new tab when embedded */
+.embed-mode a[href^="http"]:not([target]) {
+    target: _blank;
+}
+
+/* Ensure dark background when embedded on a dark page with ?theme=dark */
+body.embed-mode[data-embed-theme="dark"] {
+    background: #0a0a0a;
+}

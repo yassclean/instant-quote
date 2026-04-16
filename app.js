@@ -12,6 +12,29 @@ const EXTRAS = CONFIG.extras;
 const CARPET_EXTRAS = CONFIG.carpetExtras;
 const FREQUENCY_TIERS = CONFIG.frequencyTiers;
 
+// ==================== EMBED MODE DETECTION ====================
+const IS_EMBED = window.location.pathname === '/embed';
+if (IS_EMBED) {
+    document.body.classList.add('embed-mode');
+    // Hide chrome: navbar, animated backgrounds
+    document.addEventListener('DOMContentLoaded', () => {
+        const navbar = document.querySelector('.navbar');
+        const bgGrid = document.querySelector('.bg-grid');
+        const bgGlow = document.querySelector('.bg-glow');
+        if (navbar) navbar.style.display = 'none';
+        if (bgGrid) bgGrid.style.display = 'none';
+        if (bgGlow) bgGlow.style.display = 'none';
+        // External links open in parent frame, not inside iframe
+        document.querySelectorAll('a[href^="http"], a[href^="tel:"]').forEach(a => {
+            if (!a.getAttribute('target')) a.setAttribute('target', '_parent');
+        });
+    });
+    // Read theme from query params (e.g. ?theme=dark)
+    const embedParams = new URLSearchParams(window.location.search);
+    const embedTheme = embedParams.get('theme');
+    if (embedTheme) document.body.dataset.embedTheme = embedTheme;
+}
+
 // ==================== PROMOTION ENGINE ====================
 function getActivePromotion() {
     const promo = CONFIG.promotion;
@@ -89,7 +112,8 @@ const analytics = {
         const events = this.queue.splice(0);
         const url = '/api/track';
         if (navigator.sendBeacon) {
-            navigator.sendBeacon(url, JSON.stringify(events));
+            const blob = new Blob([JSON.stringify(events)], { type: 'application/json' });
+            navigator.sendBeacon(url, blob);
         } else {
             fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(events), keepalive: true }).catch(() => {});
         }

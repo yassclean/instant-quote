@@ -12,7 +12,15 @@ module.exports = async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-    const events = Array.isArray(req.body) ? req.body : [req.body];
+    // Handle sendBeacon's text/plain content-type — body arrives as a raw string
+    let body = req.body;
+    if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch (e) {
+            return res.status(400).json({ error: 'Invalid JSON body' });
+        }
+    }
+
+    const events = Array.isArray(body) ? body : [body];
     if (!events.length || !events[0]?.event_type) {
         return res.status(400).json({ error: 'event_type is required' });
     }

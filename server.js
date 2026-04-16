@@ -13,10 +13,16 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.text({ type: 'text/plain' }));
 app.use(express.static(path.join(__dirname)));
 
 // Serve index.html for /offer (promo landing page)
 app.get('/offer', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Serve index.html for /embed (iframe-embeddable version)
+app.get('/embed', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
@@ -117,7 +123,15 @@ async function logEvent(eventData) {
 
 // ==================== TRACKING ENDPOINT ====================
 app.post('/api/track', async (req, res) => {
-    const events = Array.isArray(req.body) ? req.body : [req.body];
+    // Handle sendBeacon's text/plain content-type — body may arrive as raw string
+    let body = req.body;
+    if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch (e) {
+            return res.status(400).json({ error: 'Invalid JSON body' });
+        }
+    }
+
+    const events = Array.isArray(body) ? body : [body];
     if (!events.length || !events[0]?.event_type) {
         return res.status(400).json({ error: 'event_type is required' });
     }
