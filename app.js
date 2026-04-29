@@ -1169,7 +1169,7 @@ async function submitBooking() {
             value: totalDueToday
         });
         gtag('event', 'conversion', {
-            send_to: 'AW-11119987979/-vkaCJLQxY0cEIuatrYp',
+            send_to: 'AW-11119987979/8TlQCL_RxaQcEIuatrYp',
             value: totalDueToday,
             currency: 'USD'
         });
