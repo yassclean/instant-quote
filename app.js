@@ -1230,8 +1230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const stickyBar = $('stickyCtaBar');
         if (stickyBar) stickyBar.classList.remove('visible');
         // Show/hide custom notes based on whether custom quote is selected
-        const isCustom = state.selectedServices.some(s => s.id === 'customQuote');
-        $('customQuoteNotes').style.display = isCustom ? 'block' : 'none';
+        // Note: Booking notes are now global and visible for all requests.
         // Pre-check 'First Available' by default to reduce friction
         if (!$('firstAvailable').checked) {
             $('firstAvailable').checked = true;

@@ -10,35 +10,71 @@ const CONFIG = {
     // Format: 'beds-baths': price
     pricing: {
         maintenance: {
-            '1-1': 150, '2-1': 178, '2-2': 214,
-            '3-1': 205, '3-2': 242, '3-3': 279,
-            '4-1': 233, '4-2': 270, '4-3': 306, '4-4': 343
+            '1-1': 150, '1-2': 187, '1-3': 224, '1-4': 261, '1-5': 298, '1-6': 335, 
+            '2-1': 178, '2-2': 215, '2-3': 252, '2-4': 289, '2-5': 326, '2-6': 363, 
+            '3-1': 206, '3-2': 243, '3-3': 280, '3-4': 317, '3-5': 354, '3-6': 391, 
+            '4-1': 234, '4-2': 271, '4-3': 308, '4-4': 345, '4-5': 382, '4-6': 419, 
+            '5-1': 262, '5-2': 299, '5-3': 336, '5-4': 373, '5-5': 410, '5-6': 447, 
+            '6-1': 290, '6-2': 327, '6-3': 364, '6-4': 401, '6-5': 438, '6-6': 475
         },
         deepClean: {
-            '1-1': 225, '2-1': 266, '2-2': 321,
-            '3-1': 308, '3-2': 363, '3-3': 418,
-            '4-1': 349, '4-2': 404, '4-3': 459, '4-4': 515
+            '1-1': 225, '1-2': 280, '1-3': 335, '1-4': 390, '1-5': 445, '1-6': 500, 
+            '2-1': 266, '2-2': 321, '2-3': 376, '2-4': 431, '2-5': 486, '2-6': 541, 
+            '3-1': 307, '3-2': 362, '3-3': 417, '3-4': 472, '3-5': 527, '3-6': 582, 
+            '4-1': 348, '4-2': 403, '4-3': 458, '4-4': 513, '4-5': 568, '4-6': 623, 
+            '5-1': 389, '5-2': 444, '5-3': 499, '5-4': 554, '5-5': 609, '5-6': 664, 
+            '6-1': 430, '6-2': 485, '6-3': 540, '6-4': 595, '6-5': 650, '6-6': 705
         },
         moveInOut: {
-            '1-1': 299, '2-1': 355, '2-2': 428,
-            '3-1': 410, '3-2': 483, '3-3': 557,
-            '4-1': 465, '4-2': 539, '4-3': 612, '4-4': 686
+            '1-1': 299, '1-2': 373, '1-3': 447, '1-4': 521, '1-5': 595, '1-6': 669, 
+            '2-1': 355, '2-2': 429, '2-3': 503, '2-4': 577, '2-5': 651, '2-6': 725, 
+            '3-1': 411, '3-2': 485, '3-3': 559, '3-4': 633, '3-5': 707, '3-6': 781, 
+            '4-1': 467, '4-2': 541, '4-3': 615, '4-4': 689, '4-5': 763, '4-6': 837, 
+            '5-1': 523, '5-2': 597, '5-3': 671, '5-4': 745, '5-5': 819, '5-6': 893, 
+            '6-1': 579, '6-2': 653, '6-3': 727, '6-4': 801, '6-5': 875, '6-6': 949
         }
     },
+
 
     // -------------------- SQFT TIER MATRIX --------------------
     // Adjusts pricing when actual sqft is significantly above/below average
     tierMatrix: {
-        '1-1': { baselineSqft: 700,  downMax: 560,  upMin: 840,  downTo: null,  upTo: '2-1' },
-        '2-1': { baselineSqft: 900,  downMax: 720,  upMin: 1080, downTo: '1-1', upTo: '2-2' },
-        '2-2': { baselineSqft: 1050, downMax: 840,  upMin: 1260, downTo: '2-1', upTo: '3-1' },
-        '3-1': { baselineSqft: 1200, downMax: 960,  upMin: 1440, downTo: '2-1', upTo: '3-2' },
-        '3-2': { baselineSqft: 1450, downMax: 1160, upMin: 1740, downTo: '3-1', upTo: '3-3' },
-        '3-3': { baselineSqft: 1750, downMax: 1400, upMin: 2100, downTo: '3-2', upTo: '4-2' },
-        '4-1': { baselineSqft: 1650, downMax: 1320, upMin: 1980, downTo: '3-2', upTo: '4-2' },
-        '4-2': { baselineSqft: 1950, downMax: 1560, upMin: 2340, downTo: '4-1', upTo: '4-3' },
-        '4-3': { baselineSqft: 2300, downMax: 1840, upMin: 2760, downTo: '4-2', upTo: '4-4' },
-        '4-4': { baselineSqft: 2800, downMax: 2240, upMin: 3360, downTo: '4-3', upTo: null  }
+        '1-1': { baselineSqft: 700, downMax: 560, upMin: 840, downTo: null, upTo: '1-2' },
+        '1-2': { baselineSqft: 850, downMax: 680, upMin: 1020, downTo: '1-1', upTo: '1-3' },
+        '1-3': { baselineSqft: 1000, downMax: 800, upMin: 1200, downTo: '1-2', upTo: '1-4' },
+        '1-4': { baselineSqft: 1150, downMax: 920, upMin: 1380, downTo: '1-3', upTo: '1-5' },
+        '1-5': { baselineSqft: 1300, downMax: 1040, upMin: 1560, downTo: '1-4', upTo: '1-6' },
+        '1-6': { baselineSqft: 1450, downMax: 1160, upMin: 1740, downTo: '1-5', upTo: '2-6' },
+        '2-1': { baselineSqft: 900, downMax: 720, upMin: 1080, downTo: '1-1', upTo: '2-2' },
+        '2-2': { baselineSqft: 1050, downMax: 840, upMin: 1260, downTo: '2-1', upTo: '2-3' },
+        '2-3': { baselineSqft: 1200, downMax: 960, upMin: 1440, downTo: '2-2', upTo: '2-4' },
+        '2-4': { baselineSqft: 1350, downMax: 1080, upMin: 1620, downTo: '2-3', upTo: '2-5' },
+        '2-5': { baselineSqft: 1500, downMax: 1200, upMin: 1800, downTo: '2-4', upTo: '2-6' },
+        '2-6': { baselineSqft: 1650, downMax: 1320, upMin: 1980, downTo: '2-5', upTo: '3-6' },
+        '3-1': { baselineSqft: 1100, downMax: 880, upMin: 1320, downTo: '2-1', upTo: '3-2' },
+        '3-2': { baselineSqft: 1250, downMax: 1000, upMin: 1500, downTo: '3-1', upTo: '3-3' },
+        '3-3': { baselineSqft: 1400, downMax: 1120, upMin: 1680, downTo: '3-2', upTo: '3-4' },
+        '3-4': { baselineSqft: 1550, downMax: 1240, upMin: 1860, downTo: '3-3', upTo: '3-5' },
+        '3-5': { baselineSqft: 1700, downMax: 1360, upMin: 2040, downTo: '3-4', upTo: '3-6' },
+        '3-6': { baselineSqft: 1850, downMax: 1480, upMin: 2220, downTo: '3-5', upTo: '4-6' },
+        '4-1': { baselineSqft: 1300, downMax: 1040, upMin: 1560, downTo: '3-1', upTo: '4-2' },
+        '4-2': { baselineSqft: 1450, downMax: 1160, upMin: 1740, downTo: '4-1', upTo: '4-3' },
+        '4-3': { baselineSqft: 1600, downMax: 1280, upMin: 1920, downTo: '4-2', upTo: '4-4' },
+        '4-4': { baselineSqft: 1750, downMax: 1400, upMin: 2100, downTo: '4-3', upTo: '4-5' },
+        '4-5': { baselineSqft: 1900, downMax: 1520, upMin: 2280, downTo: '4-4', upTo: '4-6' },
+        '4-6': { baselineSqft: 2050, downMax: 1640, upMin: 2460, downTo: '4-5', upTo: '5-6' },
+        '5-1': { baselineSqft: 1500, downMax: 1200, upMin: 1800, downTo: '4-1', upTo: '5-2' },
+        '5-2': { baselineSqft: 1650, downMax: 1320, upMin: 1980, downTo: '5-1', upTo: '5-3' },
+        '5-3': { baselineSqft: 1800, downMax: 1440, upMin: 2160, downTo: '5-2', upTo: '5-4' },
+        '5-4': { baselineSqft: 1950, downMax: 1560, upMin: 2340, downTo: '5-3', upTo: '5-5' },
+        '5-5': { baselineSqft: 2100, downMax: 1680, upMin: 2520, downTo: '5-4', upTo: '5-6' },
+        '5-6': { baselineSqft: 2250, downMax: 1800, upMin: 2700, downTo: '5-5', upTo: '6-6' },
+        '6-1': { baselineSqft: 1700, downMax: 1360, upMin: 2040, downTo: '5-1', upTo: '6-2' },
+        '6-2': { baselineSqft: 1850, downMax: 1480, upMin: 2220, downTo: '6-1', upTo: '6-3' },
+        '6-3': { baselineSqft: 2000, downMax: 1600, upMin: 2400, downTo: '6-2', upTo: '6-4' },
+        '6-4': { baselineSqft: 2150, downMax: 1720, upMin: 2580, downTo: '6-3', upTo: '6-5' },
+        '6-5': { baselineSqft: 2300, downMax: 1840, upMin: 2760, downTo: '6-4', upTo: '6-6' },
+        '6-6': { baselineSqft: 2450, downMax: 1960, upMin: 2940, downTo: '6-5', upTo: null }
     },
 
     // -------------------- CLEANING ADD-ONS --------------------
