@@ -243,7 +243,7 @@ app.post('/api/book', async (req, res) => {
         console.log('  GHL webhook: OK');
         await sendAlert('New Booking Received', '✅ INFO',
             `Booking from *${data.name}* (${data.phone}) successfully forwarded to GHL.`,
-            { customer: data.name, phone: data.phone, email: data.email, address: data.address, services: data.services_list, recurring: data.recurring_plan, total: `$${data.quote_total}`, source: data.booking_source || 'instant-quote', utm_source: data.utm_source || 'direct', ip: clientIP }
+            { customer: data.name, phone: data.phone, email: data.email, address: data.address, services: data.services_list, recurring: data.recurring_plan, total: `$${data.quote_total}`, source: data.booking_source || 'instant-quote', utm_source: data.utm_source || 'direct', utm_campaign: data.utm_campaign, fbclid: data.fbclid, gclid: data.gclid, ip: clientIP }
         );
     } catch (err) {
         console.error('  Webhook error:', err.message);
