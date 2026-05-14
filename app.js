@@ -50,6 +50,10 @@ function applyPromoDiscount(price, category) {
     return { price: discounted, originalPrice: price, hasPromo: true, promoLabel: promo.banner };
 }
 
+function applyDiscount(price, discountPercent) {
+    return +(price * (1 - discountPercent)).toFixed(2);
+}
+
 // ==================== STATE ====================
 const state = {
     currentStep: 1,
@@ -201,6 +205,7 @@ const stepLines = document.querySelectorAll('.step-line');
 // ==================== GOOGLE MAPS AUTOCOMPLETE ====================
 let autocomplete;
 
+window.initAutocomplete = initAutocomplete;
 function initAutocomplete() {
     const input = $('addressInput');
     autocomplete = new google.maps.places.Autocomplete(input, {

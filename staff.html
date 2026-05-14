@@ -4,164 +4,143 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Internal Quoting Tool | YassClean</title>
-    <link rel="stylesheet" href="/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="/favicon.png">
     
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Main Styles -->
+    <link rel="stylesheet" href="/styles.css">
+    
     <style>
-        /* Specific styles for staff tool */
-        body {
-            background-color: var(--color-bg);
-            color: var(--color-text);
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        /* Specific minimal styles for staff tool results within dark theme */
+        .staff-container {
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
         }
-
-        #pin-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--color-bg);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
+        
         .pin-box {
-            background: var(--color-surface);
-            padding: 2rem;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--color-border);
+            background: var(--bg-card);
+            padding: 3rem 2rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 400px;
-            width: 90%;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            max-width: 420px;
+            margin: 4rem auto;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
 
         .pin-input {
-            background: var(--color-bg);
-            border: 1px solid var(--color-border);
-            color: var(--color-text);
-            font-size: 2rem;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 2.5rem;
+            font-weight: 700;
             text-align: center;
-            letter-spacing: 0.5rem;
+            letter-spacing: 0.75rem;
             padding: 1rem;
-            border-radius: var(--radius-md);
+            border-radius: var(--radius-sm);
             width: 100%;
-            margin-bottom: 1rem;
-        }
-
-        #app-container {
-            display: none;
-            width: 100%;
-            max-width: 800px;
-            padding: 2rem;
-            margin-top: 2rem;
-        }
-
-        .tool-header {
-            text-align: center;
             margin-bottom: 2rem;
+            font-family: var(--font-display);
+            transition: var(--transition);
+        }
+        
+        .pin-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+            background: rgba(0,0,0,0.5);
         }
 
-        .tool-header h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .control-group {
-            background: var(--color-surface);
-            padding: 1.5rem;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--color-border);
-            margin-bottom: 1.5rem;
+        .staff-form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+            background: var(--bg-card);
+            padding: 2.5rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
         }
         
         .full-width {
             grid-column: 1 / -1;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: var(--color-text-muted);
-        }
-
-        .form-select {
-            width: 100%;
-            padding: 1rem;
-            background: var(--color-bg);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
-            color: var(--color-text);
-            font-size: 1.1rem;
-            font-family: inherit;
-        }
-        
         .results-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 1rem;
+            grid-template-columns: 1fr 1.1fr 1fr;
+            gap: 1.5rem;
             margin-top: 2rem;
+            align-items: center;
         }
 
         .result-card {
-            background: var(--color-surface);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2rem 1.5rem;
             text-align: center;
             position: relative;
+            transition: var(--transition);
         }
 
         .result-card.primary {
-            border-color: var(--color-primary);
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+            border-color: var(--border-active);
+            background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(221, 255, 0, 0.05) 100%);
+            box-shadow: 0 0 30px var(--accent-shadow);
             transform: scale(1.05);
             z-index: 2;
+            padding: 2.5rem 1.5rem;
         }
 
         .result-card h3 {
-            font-size: 1rem;
-            color: var(--color-text-muted);
-            margin: 0 0 0.5rem 0;
+            font-size: 1.1rem;
+            color: var(--text-dim);
+            margin: 0 0 1rem 0;
             font-weight: 500;
+            font-family: var(--font);
         }
 
         .result-card.primary h3 {
-            color: var(--color-primary);
+            color: var(--accent);
             font-weight: 600;
         }
 
         .price-display {
-            font-size: 2.5rem;
+            font-size: 2.75rem;
             font-weight: 800;
-            font-family: 'Outfit', sans-serif;
+            font-family: var(--font-display);
             margin: 0;
+            color: var(--text);
+            line-height: 1;
+        }
+
+        .result-card.primary .price-display {
+            font-size: 3.5rem;
         }
         
         .sqft-display {
-            font-size: 0.85rem;
-            color: var(--color-text-muted);
-            margin-top: 0.5rem;
+            font-size: 0.95rem;
+            color: var(--text-dim);
+            margin-top: 1rem;
+            line-height: 1.5;
+            font-family: var(--font);
         }
         
         .error-state {
-            color: var(--color-danger);
+            color: #ff4b4b;
             font-weight: 500;
             margin-top: 1rem;
+            font-family: var(--font);
         }
 
         @media (max-width: 768px) {
@@ -170,92 +149,142 @@
             }
             .result-card.primary {
                 transform: none;
-                order: -1; /* Put main price at top on mobile */
+                order: -1;
             }
-            .control-group {
+            .staff-form-grid {
                 grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Animated dot-grid background -->
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow" aria-hidden="true"></div>
 
-    <!-- PIN Overlay -->
-    <div id="pin-overlay">
-        <div class="pin-box">
-            <h2>Staff Access</h2>
-            <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">Enter PIN to access internal quoting.</p>
-            <input type="password" id="pin-input" class="pin-input" maxlength="4" placeholder="****" autocomplete="off">
-            <button class="btn btn-primary" style="width: 100%" onclick="checkPin()">Unlock</button>
-            <p id="pin-error" class="error-state" style="display: none;">Incorrect PIN</p>
+    <!-- Navigation -->
+    <nav class="navbar" style="justify-content: center; padding: 1.5rem 0;">
+        <div class="logo">
+            <a href="/">
+                <img src="/assets/logo.png" alt="Quote.YassClean.com" class="logo-img">
+            </a>
         </div>
-    </div>
+    </nav>
 
-    <!-- Main App -->
-    <div id="app-container">
-        <div class="tool-header">
-            <h1>Internal Quote Generator</h1>
-            <p style="color: var(--color-text-muted);">Quick pricing lookups without burning API calls.</p>
-        </div>
+    <!-- Main Content -->
+    <main class="main-content">
+        <section class="step active">
+            <div class="step-inner staff-container">
+            
+                <!-- PIN Overlay -->
+                <div id="pin-section">
+                    <div class="pin-box">
+                        <h2 class="section-title" style="margin-bottom: 0.5rem; text-align: center;">Staff Access</h2>
+                        <p class="section-sub" style="margin-bottom: 2rem; text-align: center;">Enter PIN to access internal quoting.</p>
+                        <input type="password" id="pin-input" class="pin-input" maxlength="4" placeholder="****" autocomplete="off">
+                        <button class="btn-primary" style="width: 100%" onclick="checkPin()">
+                            Unlock Access
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-arrow" style="width: 18px; height: 18px; margin-left: 8px;">
+                                <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                        <p id="pin-error" class="error-state" style="display: none;">Incorrect PIN</p>
+                    </div>
+                </div>
 
-        <div class="control-group">
-            <div class="form-group full-width">
-                <label>Service Type</label>
-                <select id="service-type" class="form-select" onchange="calculateQuote()">
-                    <option value="maintenance">Standard Maintenance</option>
-                    <option value="deepClean">Deep Clean</option>
-                    <option value="moveInOut">Move In / Move Out</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Bedrooms</label>
-                <select id="beds" class="form-select" onchange="calculateQuote()">
-                    <option value="1">1 Bedroom</option>
-                    <option value="2">2 Bedrooms</option>
-                    <option value="3">3 Bedrooms</option>
-                    <option value="4">4 Bedrooms</option>
-                    <option value="5">5 Bedrooms</option>
-                    <option value="6">6 Bedrooms</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Bathrooms</label>
-                <select id="baths" class="form-select" onchange="calculateQuote()">
-                    <option value="1">1 Bathroom</option>
-                    <option value="2">2 Bathrooms</option>
-                    <option value="3">3 Bathrooms</option>
-                    <option value="4">4 Bathrooms</option>
-                    <option value="5">5 Bathrooms</option>
-                    <option value="6">6 Bathrooms</option>
-                </select>
-            </div>
-        </div>
+                <!-- Main App -->
+                <div id="app-container" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 3rem;">
+                        <div class="hero-badge" style="margin: 0 auto 1.5rem auto;">Internal Tools</div>
+                        <h1 class="hero-title" style="font-size: 2.5rem;">
+                            Quick Quote <span class="accent">Generator</span>
+                        </h1>
+                        <p class="hero-sub" style="font-size: 1.1rem; max-width: 500px; margin: 0 auto;">Fast pricing lookups for phone and email inquiries — no address required.</p>
+                    </div>
 
-        <div class="results-grid">
-            <div class="result-card" id="card-down">
-                <h3>Smaller Home</h3>
-                <div class="price-display" id="price-down">--</div>
-                <div class="sqft-display" id="sqft-down">--</div>
+                    <div class="staff-form-grid" style="grid-template-columns: 1fr; gap: 1rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                            <div style="flex: 2;">
+                                <label class="form-label" style="font-size: 0.85rem; margin-bottom: 0.2rem;">Property Address</label>
+                                <input type="text" id="lookup-address" class="text-input" placeholder="Address..." onkeydown="if(event.key === 'Enter') performLookup()" style="padding: 0.5rem;">
+                            </div>
+                            <button class="btn-primary" id="lookup-btn" onclick="performLookup()" style="padding: 0.5rem 1rem; flex-shrink: 0;">Lookup</button>
+                        </div>
+                        <div id="lookup-status" style="font-size: 0.8rem; color: var(--text-dim); display: none;"></div>
+
+                        <div style="display: flex; gap: 0.5rem; align-items: flex-end; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 140px;">
+                                <label class="form-label" style="font-size: 0.85rem; margin-bottom: 0.2rem;">Service</label>
+                                <select id="service-type" class="text-input" onchange="calculateQuote()" style="padding: 0.5rem;">
+                                    <option value="maintenance">Maintenance</option>
+                                    <option value="deepClean">Deep Clean</option>
+                                    <option value="moveInOut">Move In/Out</option>
+                                </select>
+                            </div>
+                            <div style="flex: 0 0 80px;">
+                                <label class="form-label" style="font-size: 0.85rem; margin-bottom: 0.2rem;">Beds</label>
+                                <select id="beds" class="text-input" onchange="calculateQuote()" style="padding: 0.5rem;">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                </select>
+                            </div>
+                            <div style="flex: 0 0 80px;">
+                                <label class="form-label" style="font-size: 0.85rem; margin-bottom: 0.2rem;">Baths</label>
+                                <select id="baths" class="text-input" onchange="calculateQuote()" style="padding: 0.5rem;">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                    <option value="6">6</option>
+                                </select>
+                            </div>
+                            <div style="flex: 0 0 100px;">
+                                <label class="form-label" style="font-size: 0.85rem; margin-bottom: 0.2rem;">Sqft</label>
+                                <input type="number" id="sqft" class="text-input" onkeyup="calculateQuote()" onchange="calculateQuote()" placeholder="Sqft..." style="padding: 0.5rem;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add-ons Section -->
+                    <div id="addons-section" style="margin-bottom: 1.5rem; background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--border);">
+                        <h3 style="margin-top: 0; margin-bottom: 1rem; font-family: var(--font); color: var(--text); font-weight: 600; font-size: 1rem;">Add-ons</h3>
+                        <div id="addons-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            <!-- Checkboxes will be generated here -->
+                        </div>
+                    </div>
+
+                    <div class="results-grid" style="gap: 1rem; margin-top: 1.5rem;">
+                        <div class="result-card" id="card-down" style="padding: 1.5rem 1rem;">
+                            <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Tier Down <span style="font-size:0.8em;opacity:0.6;font-weight:normal">(Smaller)</span></h3>
+                            <div class="price-display" id="price-down" style="font-size: 2rem;">--</div>
+                            <div class="sqft-display" id="sqft-down" style="margin-top: 0.5rem; font-size: 0.85rem;">--</div>
+                        </div>
+                        
+                        <div class="result-card primary" id="card-base" style="padding: 2rem 1rem;">
+                            <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Standard Quote</h3>
+                            <div class="price-display" id="price-base" style="font-size: 2.5rem;">--</div>
+                            <div class="sqft-display" id="sqft-base" style="margin-top: 0.5rem; font-size: 0.85rem;">--</div>
+                        </div>
+                        
+                        <div class="result-card" id="card-up" style="padding: 1.5rem 1rem;">
+                            <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Tier Up <span style="font-size:0.8em;opacity:0.6;font-weight:normal">(Larger)</span></h3>
+                            <div class="price-display" id="price-up" style="font-size: 2rem;">--</div>
+                            <div class="sqft-display" id="sqft-up" style="margin-top: 0.5rem; font-size: 0.85rem;">--</div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
-            
-            <div class="result-card primary" id="card-base">
-                <h3>Standard Quote</h3>
-                <div class="price-display" id="price-base">--</div>
-                <div class="sqft-display" id="sqft-base">--</div>
-            </div>
-            
-            <div class="result-card" id="card-up">
-                <h3>Larger Home</h3>
-                <div class="price-display" id="price-up">--</div>
-                <div class="sqft-display" id="sqft-up">--</div>
-            </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <!-- Load Pricing Logic -->
-    <script src="/pricing-config.js"></script>
+    <script src="pricing-config.js"></script>
     <script>
         // PIN Authentication
         const PIN = "9989";
@@ -268,9 +297,10 @@
         function checkPin() {
             const input = document.getElementById('pin-input').value;
             if (input === PIN) {
-                document.getElementById('pin-overlay').style.display = 'none';
+                document.getElementById('pin-section').style.display = 'none';
                 document.getElementById('app-container').style.display = 'block';
                 // Trigger initial calculation
+                renderAddons();
                 calculateQuote();
             } else if (input.length >= 4) {
                 document.getElementById('pin-error').style.display = 'block';
@@ -282,27 +312,147 @@
         }
 
         // Quote Calculation
+        function renderAddons() {
+            const container = document.getElementById('addons-container');
+            if (!container || typeof CONFIG === 'undefined' || !CONFIG.extras) return;
+            
+            let html = '';
+            CONFIG.extras.forEach((addon, index) => {
+                if (addon.multiQty) {
+                    html += `
+                        <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.85rem;">
+                            <span style="color: var(--text);">${addon.name} (+$${addon.price})</span>
+                            <div style="display: flex; align-items: center;">
+                                <button class="qty-btn" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); width: 1.5rem; height: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem;" onclick="updateQty(${index}, -1)">-</button>
+                                <input type="number" id="addon-${index}" value="0" min="0" onchange="calculateQuote()" style="width: 2rem; text-align: center; background: transparent; border: none; color: var(--text); font-weight: bold; font-size: 0.9rem; pointer-events: none;" readonly>
+                                <button class="qty-btn" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); width: 1.5rem; height: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem;" onclick="updateQty(${index}, 1)">+</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <label style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; font-size: 0.85rem;" class="addon-label">
+                            <input type="checkbox" id="addon-${index}" value="${index}" onchange="calculateQuote()" style="accent-color: var(--accent); cursor: pointer;">
+                            <span style="color: var(--text);">${addon.name} (+$${addon.price})</span>
+                        </label>
+                    `;
+                }
+            });
+            container.innerHTML = html;
+        }
+
+        function updateQty(index, delta) {
+            const input = document.getElementById(`addon-${index}`);
+            let val = parseInt(input.value) || 0;
+            val += delta;
+            if (val < 0) val = 0;
+            input.value = val;
+            calculateQuote();
+        }
+
+        async function performLookup() {
+            const addressInput = document.getElementById('lookup-address');
+            const statusDiv = document.getElementById('lookup-status');
+            const btn = document.getElementById('lookup-btn');
+            const address = addressInput.value.trim();
+            
+            if (!address) {
+                statusDiv.textContent = 'Please enter an address first.';
+                statusDiv.style.display = 'block';
+                statusDiv.style.color = '#ff4b4b';
+                return;
+            }
+            
+            btn.textContent = 'Looking up...';
+            btn.style.opacity = '0.7';
+            btn.disabled = true;
+            statusDiv.style.display = 'block';
+            statusDiv.style.color = 'var(--text-dim)';
+            statusDiv.textContent = 'Searching property records...';
+            
+            try {
+                const response = await fetch('/api/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address })
+                });
+                
+                const data = await response.json();
+                
+                if (data.beds && data.baths) {
+                    // Update selects
+                    const bedSelect = document.getElementById('beds');
+                    const bathSelect = document.getElementById('baths');
+                    const sqftInput = document.getElementById('sqft');
+                    
+                    if (data.beds <= 6) bedSelect.value = data.beds;
+                    else bedSelect.value = "6"; // Max out at 6
+                    
+                    if (data.baths <= 6) bathSelect.value = data.baths;
+                    else bathSelect.value = "6"; // Max out at 6
+                    
+                    if (data.sqft) {
+                        sqftInput.value = data.sqft;
+                    } else {
+                        sqftInput.value = '';
+                    }
+
+                    statusDiv.innerHTML = `<span style="color: var(--accent);">✓ Found:</span> ${data.beds} Beds, ${data.baths} Baths${data.sqft ? `, ${data.sqft} sqft` : ''}`;
+                    calculateQuote();
+                } else {
+                    statusDiv.textContent = 'Could not find complete property details. Please select manually.';
+                    statusDiv.style.color = '#ff4b4b';
+                }
+            } catch (err) {
+                statusDiv.textContent = 'Error looking up property. Please select manually.';
+                statusDiv.style.color = '#ff4b4b';
+            } finally {
+                btn.textContent = 'Lookup';
+                btn.style.opacity = '1';
+                btn.disabled = false;
+            }
+        }
+
         function calculateQuote() {
             const serviceType = document.getElementById('service-type').value;
             const beds = document.getElementById('beds').value;
             const baths = document.getElementById('baths').value;
             
             const currentKey = `${beds}-${baths}`;
+            if (typeof CONFIG === 'undefined') return;
             const matrix = CONFIG.tierMatrix[currentKey];
             const prices = CONFIG.pricing[serviceType];
 
             if (!matrix || !prices) return;
 
+            // Calculate Add-ons total
+            let addonsTotal = 0;
+            if (typeof CONFIG !== 'undefined' && CONFIG.extras) {
+                CONFIG.extras.forEach((addon, index) => {
+                    const el = document.getElementById(`addon-${index}`);
+                    if (el) {
+                        if (addon.multiQty) {
+                            const qty = parseInt(el.value) || 0;
+                            addonsTotal += qty * addon.price;
+                        } else {
+                            if (el.checked) {
+                                addonsTotal += addon.price;
+                            }
+                        }
+                    }
+                });
+            }
+
             // 1. Calculate Base
-            const basePrice = prices[currentKey];
+            const basePrice = prices[currentKey] + addonsTotal;
             document.getElementById('price-base').textContent = `$${basePrice}`;
-            document.getElementById('sqft-base').innerHTML = `${matrix.downMax} - ${matrix.upMin} sqft<br>(Avg: ${matrix.baselineSqft})`;
+            document.getElementById('sqft-base').innerHTML = `${matrix.downMax} - ${matrix.upMin} sqft<br><span style="opacity: 0.6; font-size: 0.9em; margin-top: 0.25rem; display: inline-block;">(Avg: ${matrix.baselineSqft})</span>`;
 
             // 2. Calculate Tier Down
+            let downKey = null, upKey = null;
             if (matrix.downTo && prices[matrix.downTo]) {
-                const downKey = matrix.downTo;
-                const downMatrix = CONFIG.tierMatrix[downKey];
-                document.getElementById('price-down').textContent = `$${prices[downKey]}`;
+                downKey = matrix.downTo;
+                document.getElementById('price-down').textContent = `$${prices[downKey] + addonsTotal}`;
                 document.getElementById('sqft-down').textContent = `< ${matrix.downMax} sqft`;
                 document.getElementById('card-down').style.opacity = '1';
             } else {
@@ -313,15 +463,56 @@
 
             // 3. Calculate Tier Up
             if (matrix.upTo && prices[matrix.upTo]) {
-                const upKey = matrix.upTo;
-                const upMatrix = CONFIG.tierMatrix[upKey];
-                document.getElementById('price-up').textContent = `$${prices[upKey]}`;
+                upKey = matrix.upTo;
+                document.getElementById('price-up').textContent = `$${prices[upKey] + addonsTotal}`;
                 document.getElementById('sqft-up').textContent = `> ${matrix.upMin} sqft`;
                 document.getElementById('card-up').style.opacity = '1';
             } else {
                 document.getElementById('price-up').textContent = `Custom`;
                 document.getElementById('sqft-up').textContent = `Maximum size reached`;
                 document.getElementById('card-up').style.opacity = '0.5';
+            }
+
+            // Handle SQFT override highlighting
+            const sqftInput = document.getElementById('sqft').value;
+            const sqft = parseInt(sqftInput, 10);
+
+            document.getElementById('card-base').classList.remove('primary');
+            document.getElementById('card-down').classList.remove('primary');
+            document.getElementById('card-up').classList.remove('primary');
+
+            if (!isNaN(sqft) && sqft > 0) {
+                if (downKey && sqft <= matrix.downMax) {
+                    document.getElementById('card-down').classList.add('primary');
+                    document.getElementById('card-base').style.opacity = '0.5';
+                    if(document.getElementById('card-up').style.opacity !== '0.5') {
+                        document.getElementById('card-up').style.opacity = '0.5';
+                    }
+                } else if (upKey && sqft >= matrix.upMin) {
+                    document.getElementById('card-up').classList.add('primary');
+                    document.getElementById('card-base').style.opacity = '0.5';
+                    if(document.getElementById('card-down').style.opacity !== '0.5') {
+                        document.getElementById('card-down').style.opacity = '0.5';
+                    }
+                } else {
+                    document.getElementById('card-base').classList.add('primary');
+                    document.getElementById('card-base').style.opacity = '1';
+                    if(document.getElementById('card-down').style.opacity !== '0.5') {
+                        document.getElementById('card-down').style.opacity = '1';
+                    }
+                    if(document.getElementById('card-up').style.opacity !== '0.5') {
+                        document.getElementById('card-up').style.opacity = '1';
+                    }
+                }
+            } else {
+                document.getElementById('card-base').classList.add('primary');
+                document.getElementById('card-base').style.opacity = '1';
+                if(document.getElementById('card-down').style.opacity !== '0.5') {
+                    document.getElementById('card-down').style.opacity = '1';
+                }
+                if(document.getElementById('card-up').style.opacity !== '0.5') {
+                    document.getElementById('card-up').style.opacity = '1';
+                }
             }
         }
     </script>
