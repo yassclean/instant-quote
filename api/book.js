@@ -94,7 +94,11 @@ module.exports = async function handler(req, res) {
     data.utm_medium = data.attribution?.utm_medium || '';
     data.utm_campaign = data.attribution?.utm_campaign || '';
     data.utm_content = data.attribution?.utm_content || '';
+    data.utm_term = data.attribution?.utm_term || '';
     data.fbclid = data.attribution?.fbclid || '';
+    data.gclid = data.attribution?.gclid || '';
+    data.wbraid = data.attribution?.wbraid || '';
+    data.gbraid = data.attribution?.gbraid || '';
     data.landing_page = data.attribution?.landing_page || '';
     data.referrer = data.attribution?.referrer || '';
 
@@ -222,7 +226,7 @@ module.exports = async function handler(req, res) {
                 recurring: data.recurring_plan,
                 total: `$${data.quote_total}`,
                 source: data.booking_source,
-                utm_source: data.utm_source || 'direct',
+                utm_source: data.utm_source || (data.gclid ? 'google_ads' : (data.fbclid ? 'facebook_ads' : 'direct')),
                 ip: clientIP
             }
         );

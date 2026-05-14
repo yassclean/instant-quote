@@ -61,17 +61,29 @@ const state = {
     apiProperty: { beds: null, baths: null, sqft: null, source: null }  // API-populated values
 };
 
-// Capture UTM params & fbclid on page load for attribution
+// Capture UTM params & fbclid on page load for attribution (persist in sessionStorage)
 (function captureAttribution() {
     const params = new URLSearchParams(window.location.search);
+    
+    const getParam = (key) => {
+        const val = params.get(key);
+        if (val) {
+            sessionStorage.setItem('yass_' + key, val);
+            return val;
+        }
+        return sessionStorage.getItem('yass_' + key) || '';
+    };
+
     state.attribution = {
-        utm_source: params.get('utm_source') || '',
-        utm_medium: params.get('utm_medium') || '',
-        utm_campaign: params.get('utm_campaign') || '',
-        utm_content: params.get('utm_content') || '',
-        utm_term: params.get('utm_term') || '',
-        fbclid: params.get('fbclid') || '',
-        gclid: params.get('gclid') || '',
+        utm_source: getParam('utm_source'),
+        utm_medium: getParam('utm_medium'),
+        utm_campaign: getParam('utm_campaign'),
+        utm_content: getParam('utm_content'),
+        utm_term: getParam('utm_term'),
+        fbclid: getParam('fbclid'),
+        gclid: getParam('gclid'),
+        wbraid: getParam('wbraid'),
+        gbraid: getParam('gbraid'),
         landing_page: window.location.href,
         referrer: document.referrer || ''
     };

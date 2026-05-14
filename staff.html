@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internal Quoting Tool | YassClean</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    
+    <style>
+        /* Specific styles for staff tool */
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #pin-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--color-bg);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pin-box {
+            background: var(--color-surface);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .pin-input {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            font-size: 2rem;
+            text-align: center;
+            letter-spacing: 0.5rem;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        #app-container {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .tool-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .tool-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .control-group {
+            background: var(--color-surface);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            margin-bottom: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--color-text-muted);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 1rem;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            color: var(--color-text);
+            font-size: 1.1rem;
+            font-family: inherit;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .result-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .result-card.primary {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+            transform: scale(1.05);
+            z-index: 2;
+        }
+
+        .result-card h3 {
+            font-size: 1rem;
+            color: var(--color-text-muted);
+            margin: 0 0 0.5rem 0;
+            font-weight: 500;
+        }
+
+        .result-card.primary h3 {
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        .price-display {
+            font-size: 2.5rem;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+        }
+        
+        .sqft-display {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            margin-top: 0.5rem;
+        }
+        
+        .error-state {
+            color: var(--color-danger);
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+            .result-card.primary {
+                transform: none;
+                order: -1; /* Put main price at top on mobile */
+            }
+            .control-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PIN Overlay -->
+    <div id="pin-overlay">
+        <div class="pin-box">
+            <h2>Staff Access</h2>
+            <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">Enter PIN to access internal quoting.</p>
+            <input type="password" id="pin-input" class="pin-input" maxlength="4" placeholder="****" autocomplete="off">
+            <button class="btn btn-primary" style="width: 100%" onclick="checkPin()">Unlock</button>
+            <p id="pin-error" class="error-state" style="display: none;">Incorrect PIN</p>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-container">
+        <div class="tool-header">
+            <h1>Internal Quote Generator</h1>
+            <p style="color: var(--color-text-muted);">Quick pricing lookups without burning API calls.</p>
+        </div>
+
+        <div class="control-group">
+            <div class="form-group full-width">
+                <label>Service Type</label>
+                <select id="service-type" class="form-select" onchange="calculateQuote()">
+                    <option value="maintenance">Standard Maintenance</option>
+                    <option value="deepClean">Deep Clean</option>
+                    <option value="moveInOut">Move In / Move Out</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Bedrooms</label>
+                <select id="beds" class="form-select" onchange="calculateQuote()">
+                    <option value="1">1 Bedroom</option>
+                    <option value="2">2 Bedrooms</option>
+                    <option value="3">3 Bedrooms</option>
+                    <option value="4">4 Bedrooms</option>
+                    <option value="5">5 Bedrooms</option>
+                    <option value="6">6 Bedrooms</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Bathrooms</label>
+                <select id="baths" class="form-select" onchange="calculateQuote()">
+                    <option value="1">1 Bathroom</option>
+                    <option value="2">2 Bathrooms</option>
+                    <option value="3">3 Bathrooms</option>
+                    <option value="4">4 Bathrooms</option>
+                    <option value="5">5 Bathrooms</option>
+                    <option value="6">6 Bathrooms</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="results-grid">
+            <div class="result-card" id="card-down">
+                <h3>Smaller Home</h3>
+                <div class="price-display" id="price-down">--</div>
+                <div class="sqft-display" id="sqft-down">--</div>
+            </div>
+            
+            <div class="result-card primary" id="card-base">
+                <h3>Standard Quote</h3>
+                <div class="price-display" id="price-base">--</div>
+                <div class="sqft-display" id="sqft-base">--</div>
+            </div>
+            
+            <div class="result-card" id="card-up">
+                <h3>Larger Home</h3>
+                <div class="price-display" id="price-up">--</div>
+                <div class="sqft-display" id="sqft-up">--</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Pricing Logic -->
+    <script src="/pricing-config.js"></script>
+    <script>
+        // PIN Authentication
+        const PIN = "9989";
+        
+        document.getElementById('pin-input').addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') checkPin();
+            if (this.value.length === 4) checkPin();
+        });
+
+        function checkPin() {
+            const input = document.getElementById('pin-input').value;
+            if (input === PIN) {
+                document.getElementById('pin-overlay').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+                // Trigger initial calculation
+                calculateQuote();
+            } else if (input.length >= 4) {
+                document.getElementById('pin-error').style.display = 'block';
+                document.getElementById('pin-input').value = '';
+                setTimeout(() => {
+                    document.getElementById('pin-error').style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        // Quote Calculation
+        function calculateQuote() {
+            const serviceType = document.getElementById('service-type').value;
+            const beds = document.getElementById('beds').value;
+            const baths = document.getElementById('baths').value;
+            
+            const currentKey = `${beds}-${baths}`;
+            const matrix = CONFIG.tierMatrix[currentKey];
+            const prices = CONFIG.pricing[serviceType];
+
+            if (!matrix || !prices) return;
+
+            // 1. Calculate Base
+            const basePrice = prices[currentKey];
+            document.getElementById('price-base').textContent = `$${basePrice}`;
+            document.getElementById('sqft-base').innerHTML = `${matrix.downMax} - ${matrix.upMin} sqft<br>(Avg: ${matrix.baselineSqft})`;
+
+            // 2. Calculate Tier Down
+            if (matrix.downTo && prices[matrix.downTo]) {
+                const downKey = matrix.downTo;
+                const downMatrix = CONFIG.tierMatrix[downKey];
+                document.getElementById('price-down').textContent = `$${prices[downKey]}`;
+                document.getElementById('sqft-down').textContent = `< ${matrix.downMax} sqft`;
+                document.getElementById('card-down').style.opacity = '1';
+            } else {
+                document.getElementById('price-down').textContent = `N/A`;
+                document.getElementById('sqft-down').textContent = `Minimum size reached`;
+                document.getElementById('card-down').style.opacity = '0.5';
+            }
+
+            // 3. Calculate Tier Up
+            if (matrix.upTo && prices[matrix.upTo]) {
+                const upKey = matrix.upTo;
+                const upMatrix = CONFIG.tierMatrix[upKey];
+                document.getElementById('price-up').textContent = `$${prices[upKey]}`;
+                document.getElementById('sqft-up').textContent = `> ${matrix.upMin} sqft`;
+                document.getElementById('card-up').style.opacity = '1';
+            } else {
+                document.getElementById('price-up').textContent = `Custom`;
+                document.getElementById('sqft-up').textContent = `Maximum size reached`;
+                document.getElementById('card-up').style.opacity = '0.5';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -22,6 +22,10 @@
         {
             "source": "/embed",
             "destination": "/index.html"
+        },
+        {
+            "source": "/staff",
+            "destination": "/staff.html"
         }
     ],
     "headers": [

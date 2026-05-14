@@ -26,6 +26,11 @@ app.get('/embed', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Serve staff.html for internal quoting tool
+app.get('/staff', (req, res) => {
+    res.sendFile(path.join(__dirname, 'staff.html'));
+});
+
 // ==================== ADDRESS CACHE ====================
 const addressCache = new Map();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
