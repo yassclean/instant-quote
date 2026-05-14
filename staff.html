@@ -277,6 +277,14 @@
                             <div class="sqft-display" id="sqft-up" style="margin-top: 0.5rem; font-size: 0.85rem;">--</div>
                         </div>
                     </div>
+
+                    <!-- Frequency Discounts -->
+                    <div id="frequency-section" style="margin-top: 2rem; display: none;">
+                        <h3 style="margin-top: 0; margin-bottom: 1rem; font-family: var(--font); color: var(--text); font-weight: 600; font-size: 1rem; text-align: center;">Frequency Pricing (Selected Tier)</h3>
+                        <div id="frequency-container" style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+                            <!-- Frequency cards generated here -->
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -285,10 +293,32 @@
 
     <!-- Load Pricing Logic -->
     <script src="pricing-config.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBgvJ0jAhyePXblXS8rE7Y2bdOTJvU7HCs&libraries=places&callback=initStaffAutocomplete" async defer></script>
     <script>
         // PIN Authentication
         const PIN = "9989";
         
+        let autocomplete;
+        function initStaffAutocomplete() {
+            const input = document.getElementById('lookup-address');
+            if(typeof google === 'undefined' || !google.maps || !google.maps.places) return;
+            autocomplete = new google.maps.places.Autocomplete(input, {
+                componentRestrictions: { country: "us" },
+                fields: ["address_components", "geometry", "formatted_address"],
+                types: ["address"]
+            });
+            autocomplete.addListener("place_changed", onPlaceChanged);
+        }
+
+        function onPlaceChanged() {
+            const place = autocomplete.getPlace();
+            if (!place.geometry) {
+                return;
+            }
+            document.getElementById('lookup-address').value = place.formatted_address;
+            performLookup();
+        }
+
         document.getElementById('pin-input').addEventListener('keyup', function(e) {
             if (e.key === 'Enter') checkPin();
             if (this.value.length === 4) checkPin();
@@ -513,6 +543,34 @@
                 if(document.getElementById('card-up').style.opacity !== '0.5') {
                     document.getElementById('card-up').style.opacity = '1';
                 }
+            }
+
+            // Frequency Discounts
+            const freqSection = document.getElementById('frequency-section');
+            const freqContainer = document.getElementById('frequency-container');
+            if (serviceType === 'maintenance' && CONFIG.frequencyTiers) {
+                freqSection.style.display = 'block';
+                let freqHtml = '';
+                
+                // Base price is what's displayed in the 'Standard Quote' unless it's overridden
+                let targetPrice = basePrice;
+                if (!isNaN(sqft) && sqft > 0) {
+                    if (downKey && sqft <= matrix.downMax) targetPrice = prices[downKey] + addonsTotal;
+                    else if (upKey && sqft >= matrix.upMin) targetPrice = prices[upKey] + addonsTotal;
+                }
+
+                CONFIG.frequencyTiers.forEach(tier => {
+                    const discounted = Math.round(targetPrice * (1 - tier.discount));
+                    freqHtml += `
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 1rem; border-radius: var(--radius-sm); text-align: center; flex: 1; min-width: 120px;">
+                            <div style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 0.5rem;">${tier.label}</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--text); font-family: var(--font-display);">$${discounted}</div>
+                        </div>
+                    `;
+                });
+                freqContainer.innerHTML = freqHtml;
+            } else {
+                freqSection.style.display = 'none';
             }
         }
     </script>
